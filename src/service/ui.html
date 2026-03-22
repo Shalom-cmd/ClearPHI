@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eric Jamison, MD — Patient Document De-Identification</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0f1f3d;
+    --navy-light: #162a52;
+    --blue: #1a56db;
+    --blue-light: #3b82f6;
+    --teal: #0891b2;
+    --teal-light: #e0f7fa;
+    --cream: #f8f7f4;
+    --white: #ffffff;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-400: #9ca3af;
+    --gray-600: #4b5563;
+    --gray-800: #1f2937;
+    --green: #059669;
+    --green-light: #ecfdf5;
+    --red: #dc2626;
+    --red-light: #fef2f2;
+    --amber: #d97706;
+    --amber-light: #fffbeb;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.13);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--gray-800);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--navy);
+    padding: 0 40px;
+    height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-mark {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, var(--blue), var(--teal));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -1px;
+  }
+
+  .header-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    color: var(--white);
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+
+  .header-subtitle {
+    font-size: 11px;
+    color: var(--gray-400);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  .hipaa-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: var(--gray-400);
+    letter-spacing: 0.3px;
+  }
+
+  .hipaa-dot {
+    width: 7px;
+    height: 7px;
+    background: #4ade80;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── Main layout ── */
+  main {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 40px 24px 60px;
+  }
+
+  .page-intro {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .page-intro h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    color: var(--navy);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .page-intro p {
+    font-size: 15px;
+    color: var(--gray-600);
+    font-weight: 300;
+    max-width: 520px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* ── Upload card ── */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 20px 28px 16px;
+    border-bottom: 1px solid var(--gray-100);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-header-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--teal-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .card-header h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--navy);
+  }
+
+  .card-header p {
+    font-size: 12px;
+    color: var(--gray-400);
+    margin-top: 1px;
+  }
+
+  .card-body {
+    padding: 28px;
+  }
+
+  /* ── Drop zone ── */
+  .drop-zone {
+    border: 2px dashed var(--gray-200);
+    border-radius: var(--radius);
+    padding: 48px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--gray-100);
+    position: relative;
+  }
+
+  .drop-zone:hover,
+  .drop-zone.dragover {
+    border-color: var(--blue-light);
+    background: #eff6ff;
+  }
+
+  .drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .drop-icon {
+    font-size: 40px;
+    margin-bottom: 14px;
+    display: block;
+  }
+
+  .drop-zone h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+
+  .drop-zone p {
+    font-size: 13px;
+    color: var(--gray-400);
+  }
+
+  .drop-zone .file-types {
+    display: inline-flex;
+    gap: 6px;
+    margin-top: 14px;
+  }
+
+  .tag {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--gray-600);
+    letter-spacing: 0.3px;
+  }
+
+  /* ── File queued ── */
+  .file-queued {
+    display: none;
+    align-items: center;
+    gap: 14px;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    padding: 16px 18px;
+    margin-top: 16px;
+  }
+
+  .file-queued.visible { display: flex; }
+
+  .file-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .file-icon.pdf { background: #fef2f2; }
+  .file-icon.docx { background: #eff6ff; }
+
+  .file-info { flex: 1; min-width: 0; }
+
+  .file-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--navy);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .file-size {
+    font-size: 12px;
+    color: var(--gray-400);
+    margin-top: 2px;
+  }
+
+  .remove-file {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--gray-400);
+    font-size: 18px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.15s;
+  }
+
+  .remove-file:hover { color: var(--red); }
+
+  /* ── Process button ── */
+  .btn-process {
+    width: 100%;
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--navy);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-process:hover:not(:disabled) {
+    background: var(--navy-light);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .btn-process:disabled {
+    background: var(--gray-200);
+    color: var(--gray-400);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* ── Progress ── */
+  .progress-card {
+    display: none;
+    margin-top: 20px;
+  }
+
+  .progress-card.visible { display: block; }
+
+  .progress-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    transition: background 0.2s;
+  }
+
+  .step-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+    background: white;
+    color: var(--gray-400);
+    transition: all 0.3s;
+    margin-top: 1px;
+  }
+
+  .step.active .step-dot {
+    border-color: var(--blue);
+    background: var(--blue);
+    color: white;
+    animation: spin-dot 1s linear infinite;
+  }
+
+  .step.done .step-dot {
+    border-color: var(--green);
+    background: var(--green);
+    color: white;
+    animation: none;
+  }
+
+  .step.error .step-dot {
+    border-color: var(--red);
+    background: var(--red);
+    color: white;
+    animation: none;
+  }
+
+  @keyframes spin-dot {
+    0% { box-shadow: 0 0 0 0 rgba(26,86,219,0.4); }
+    70% { box-shadow: 0 0 0 8px rgba(26,86,219,0); }
+    100% { box-shadow: 0 0 0 0 rgba(26,86,219,0); }
+  }
+
+  .step-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray-600);
+    margin-top: 4px;
+  }
+
+  .step.active .step-label { color: var(--navy); }
+  .step.done .step-label { color: var(--gray-800); }
+
+  .step-sublabel {
+    font-size: 12px;
+    color: var(--gray-400);
+    margin-top: 2px;
+  }
+
+  /* ── Results ── */
+  .results-card {
+    display: none;
+    margin-top: 24px;
+  }
+
+  .results-card.visible { display: block; }
+
+  .result-header {
+    background: var(--green-light);
+    border: 1px solid #a7f3d0;
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .result-check {
+    width: 44px;
+    height: 44px;
+    background: var(--green);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .result-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #065f46;
+  }
+
+  .result-header p {
+    font-size: 13px;
+    color: #047857;
+    margin-top: 2px;
+  }
+
+  /* ── Stats grid ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-box {
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    text-align: center;
+  }
+
+  .stat-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--navy);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 5px;
+  }
+
+  /* ── Entity breakdown ── */
+  .entity-section {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .entity-section-header {
+    padding: 12px 16px;
+    background: var(--gray-100);
+    border-bottom: 1px solid var(--gray-200);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .entity-list {
+    padding: 12px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .entity-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--navy);
+    color: white;
+    border-radius: 20px;
+    padding: 4px 12px 4px 8px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .entity-chip-count {
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: 11px;
+  }
+
+  /* ── Download section ── */
+  .download-section {
+    display: flex;
+    gap: 12px;
+  }
+
+  .btn-download {
+    flex: 1;
+    padding: 14px;
+    background: var(--blue);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+  }
+
+  .btn-download:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .btn-new {
+    padding: 14px 20px;
+    background: var(--white);
+    color: var(--navy);
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-new:hover {
+    border-color: var(--navy);
+    background: var(--gray-100);
+  }
+
+  /* ── Preserved values ── */
+  .preserved-section {
+    margin-top: 16px;
+    padding: 14px 16px;
+    background: var(--amber-light);
+    border: 1px solid #fcd34d;
+    border-radius: var(--radius-sm);
+  }
+
+  .preserved-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--amber);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .preserved-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .preserved-chip {
+    background: white;
+    border: 1px solid #fcd34d;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: #92400e;
+  }
+
+  /* ── Error state ── */
+  .error-box {
+    display: none;
+    margin-top: 16px;
+    padding: 16px 18px;
+    background: var(--red-light);
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--red);
+  }
+
+  .error-box.visible { display: block; }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 11px;
+    color: var(--gray-400);
+    letter-spacing: 0.3px;
+  }
+
+  /* ── Info bar ── */
+  .info-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .info-item {
+    flex: 1;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .info-item-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .info-item-text {
+    font-size: 12px;
+    color: var(--gray-600);
+    line-height: 1.4;
+  }
+
+  .info-item-text strong {
+    display: block;
+    font-size: 13px;
+    color: var(--navy);
+    font-weight: 600;
+    margin-bottom: 1px;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: rotate 0.8s linear infinite;
+  }
+
+  @keyframes rotate {
+    to { transform: rotate(360deg); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo-mark">OP</div>
+    <div>
+      <div class="header-title">Eric Jamison, MD</div>
+      <div class="header-subtitle">Patient De-Identification System</div>
+    </div>
+  </div>
+  <div class="hipaa-badge">
+    <div class="hipaa-dot"></div>
+    HIPAA Safe Harbor Compliant
+  </div>
+</header>
+
+<main>
+  <div class="page-intro">
+    <h1>Document De-Identification</h1>
+    <p>Upload a patient document to automatically remove all protected health information before research use.</p>
+  </div>
+
+  <div class="info-bar">
+    <div class="info-item">
+      <div class="info-item-icon">🔒</div>
+      <div class="info-item-text">
+        <strong>Processed Locally</strong>
+        No data leaves this computer
+      </div>
+    </div>
+    <div class="info-item">
+      <div class="info-item-icon">📋</div>
+      <div class="info-item-text">
+        <strong>18 HIPAA Identifiers</strong>
+        All Safe Harbor categories covered
+      </div>
+    </div>
+    <div class="info-item">
+      <div class="info-item-icon">🗒️</div>
+      <div class="info-item-text">
+        <strong>Audit Log Saved</strong>
+        Full redaction report generated
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Card -->
+  <div class="card" id="uploadCard">
+    <div class="card-header">
+      <div class="card-header-icon">📄</div>
+      <div>
+        <h2>Upload Patient Document</h2>
+        <p>PDF and Word documents supported</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".pdf,.docx" />
+        <span class="drop-icon">📂</span>
+        <h3>Drag & drop your document here</h3>
+        <p>or click anywhere to browse files</p>
+        <div class="file-types">
+          <span class="tag">PDF</span>
+          <span class="tag">DOCX</span>
+        </div>
+      </div>
+
+      <div class="file-queued" id="fileQueued">
+        <div class="file-icon" id="fileIcon">📄</div>
+        <div class="file-info">
+          <div class="file-name" id="fileName">document.pdf</div>
+          <div class="file-size" id="fileSize">—</div>
+        </div>
+        <button class="remove-file" id="removeFile" title="Remove file">✕</button>
+      </div>
+
+      <div class="error-box" id="errorBox"></div>
+
+      <button class="btn-process" id="processBtn" disabled>
+        <span id="btnIcon">🛡️</span>
+        <span id="btnText">De-Identify Document</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-card card" id="progressCard">
+    <div class="card-header">
+      <div class="card-header-icon">⚙️</div>
+      <div>
+        <h2>Processing Document</h2>
+        <p>Please wait — do not close this window</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="progress-steps">
+        <div class="step" id="step1">
+          <div class="step-dot" id="dot1">1</div>
+          <div>
+            <div class="step-label">Uploading document</div>
+            <div class="step-sublabel">Sending to local de-identification engine</div>
+          </div>
+        </div>
+        <div class="step" id="step2">
+          <div class="step-dot" id="dot2">2</div>
+          <div>
+            <div class="step-label">Extracting text</div>
+            <div class="step-sublabel">Reading PDF / Word content</div>
+          </div>
+        </div>
+        <div class="step" id="step3">
+          <div class="step-dot" id="dot3">3</div>
+          <div>
+            <div class="step-label">Scanning for PHI</div>
+            <div class="step-sublabel">Identifying all 18 HIPAA Safe Harbor identifiers</div>
+          </div>
+        </div>
+        <div class="step" id="step4">
+          <div class="step-dot" id="dot4">4</div>
+          <div>
+            <div class="step-label">Redacting identifiers</div>
+            <div class="step-sublabel">Replacing PHI with labeled placeholders</div>
+          </div>
+        </div>
+        <div class="step" id="step5">
+          <div class="step-dot" id="dot5">5</div>
+          <div>
+            <div class="step-label">Saving audit log</div>
+            <div class="step-sublabel">Recording all redactions for compliance</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-card" id="resultsCard">
+    <div class="result-header">
+      <div class="result-check">✓</div>
+      <div>
+        <h3 id="resultTitle">De-identification complete</h3>
+        <p id="resultSubtitle">Document is ready for research use</p>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-number" id="statTotal">—</div>
+        <div class="stat-label">Items Removed</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="statTypes">—</div>
+        <div class="stat-label">PHI Categories</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="statPreserved">—</div>
+        <div class="stat-label">Values Preserved</div>
+      </div>
+    </div>
+
+    <div class="entity-section">
+      <div class="entity-section-header">Redacted Identifier Types</div>
+      <div class="entity-list" id="entityList"></div>
+    </div>
+
+    <div class="preserved-section" id="preservedSection" style="display:none">
+      <div class="preserved-title">⚠️ Intentionally Preserved (HIPAA Safe Harbor)</div>
+      <div class="preserved-items" id="preservedItems"></div>
+    </div>
+
+    <div class="download-section" style="margin-top:20px">
+      <button class="btn-download" id="downloadBtn">
+        ⬇️ Download Redacted Document
+      </button>
+      <button class="btn-new" id="newDocBtn">
+        ↩ New Document
+      </button>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  Eric Jamison, MD · Patient De-Identification System · All processing is local · No PHI transmitted externally
+</footer>
+
+<script>
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const fileQueued = document.getElementById('fileQueued');
+  const fileNameEl = document.getElementById('fileName');
+  const fileSizeEl = document.getElementById('fileSize');
+  const fileIconEl = document.getElementById('fileIcon');
+  const removeFileBtn = document.getElementById('removeFile');
+  const processBtn = document.getElementById('processBtn');
+  const btnIcon = document.getElementById('btnIcon');
+  const btnText = document.getElementById('btnText');
+  const errorBox = document.getElementById('errorBox');
+  const progressCard = document.getElementById('progressCard');
+  const resultsCard = document.getElementById('resultsCard');
+
+  let selectedFile = null;
+  let redactedOutputPath = null;
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  }
+
+  function setFile(file) {
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['pdf', 'docx'].includes(ext)) {
+      showError('Unsupported file type. Please upload a PDF or DOCX file.');
+      return;
+    }
+    selectedFile = file;
+    fileNameEl.textContent = file.name;
+    fileSizeEl.textContent = formatSize(file.size);
+    fileIconEl.textContent = ext === 'pdf' ? '📕' : '📘';
+    fileIconEl.className = 'file-icon ' + ext;
+    fileQueued.classList.add('visible');
+    processBtn.disabled = false;
+    hideError();
+  }
+
+  function showError(msg) {
+    errorBox.textContent = '⚠️ ' + msg;
+    errorBox.classList.add('visible');
+  }
+
+  function hideError() {
+    errorBox.classList.remove('visible');
+  }
+
+  function clearFile() {
+    selectedFile = null;
+    fileInput.value = '';
+    fileQueued.classList.remove('visible');
+    processBtn.disabled = true;
+    hideError();
+  }
+
+  // Drag and drop
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) setFile(file);
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) setFile(fileInput.files[0]);
+  });
+  removeFileBtn.addEventListener('click', clearFile);
+
+  // Step animation helpers
+  function stepActive(n) {
+    document.getElementById('step' + n).classList.add('active');
+    document.getElementById('dot' + n).textContent = '⟳';
+  }
+  function stepDone(n) {
+    document.getElementById('step' + n).classList.remove('active');
+    document.getElementById('step' + n).classList.add('done');
+    document.getElementById('dot' + n).textContent = '✓';
+  }
+
+  function resetSteps() {
+    for (let i = 1; i <= 5; i++) {
+      const s = document.getElementById('step' + i);
+      s.classList.remove('active', 'done', 'error');
+      document.getElementById('dot' + i).textContent = i;
+    }
+  }
+
+  // Process
+  processBtn.addEventListener('click', async () => {
+    if (!selectedFile) return;
+
+    hideError();
+    processBtn.disabled = true;
+    btnIcon.innerHTML = '<span class="spinner"></span>';
+    btnText.textContent = 'Processing...';
+    progressCard.classList.add('visible');
+    resultsCard.classList.remove('visible');
+    resetSteps();
+
+    // Build form data
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('document_id', selectedFile.name.replace(/\.[^.]+$/, ''));
+
+    stepActive(1);
+
+    try {
+      const response = await fetch('/deidentify/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      stepDone(1);
+      stepActive(2);
+      await delay(400);
+      stepDone(2);
+      stepActive(3);
+      await delay(600);
+      stepDone(3);
+      stepActive(4);
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Service error');
+      }
+
+      const result = await response.json();
+      stepDone(4);
+      stepActive(5);
+      await delay(400);
+      stepDone(5);
+
+      redactedOutputPath = result.output_path;
+      showResults(result);
+
+    } catch (err) {
+      for (let i = 1; i <= 5; i++) {
+        if (document.getElementById('step' + i).classList.contains('active')) {
+          document.getElementById('step' + i).classList.remove('active');
+          document.getElementById('step' + i).classList.add('error');
+          document.getElementById('dot' + i).textContent = '✕';
+        }
+      }
+      showError('Processing failed: ' + err.message + '. Make sure the de-identification service is running.');
+      btnIcon.textContent = '🛡️';
+      btnText.textContent = 'De-Identify Document';
+      processBtn.disabled = false;
+    }
+  });
+
+  function delay(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
+
+  function showResults(result) {
+    const counts = result.entity_counts || {};
+    const types = Object.keys(counts).length;
+    const preserved = (result.preserved_values || []).length;
+
+    document.getElementById('statTotal').textContent = result.total_redactions || 0;
+    document.getElementById('statTypes').textContent = types;
+    document.getElementById('statPreserved').textContent = preserved;
+    document.getElementById('resultTitle').textContent = 'De-identification complete: ' + result.document_id;
+    document.getElementById('resultSubtitle').textContent =
+      result.total_redactions + ' PHI items removed · Audit log saved · Ready for research';
+
+    // Entity chips
+    const entityList = document.getElementById('entityList');
+    entityList.innerHTML = '';
+    Object.entries(counts).sort((a,b) => b[1]-a[1]).forEach(([entity, count]) => {
+      const chip = document.createElement('div');
+      chip.className = 'entity-chip';
+      chip.innerHTML = `${entity.replace(/_/g,' ')} <span class="entity-chip-count">${count}</span>`;
+      entityList.appendChild(chip);
+    });
+
+    // Preserved values
+    const preservedSection = document.getElementById('preservedSection');
+    const preservedItems = document.getElementById('preservedItems');
+    const pvList = result.preserved_values || [];
+    if (pvList.length > 0) {
+      preservedSection.style.display = 'block';
+      preservedItems.innerHTML = '';
+      pvList.forEach(pv => {
+        const chip = document.createElement('span');
+        chip.className = 'preserved-chip';
+        chip.textContent = `"${pv.value}" (${pv.entity_type.replace(/_/g,' ')})`;
+        preservedItems.appendChild(chip);
+      });
+    } else {
+      preservedSection.style.display = 'none';
+    }
+
+    resultsCard.classList.add('visible');
+    btnIcon.textContent = '🛡️';
+    btnText.textContent = 'De-Identify Document';
+  }
+
+  // Download
+  document.getElementById('downloadBtn').addEventListener('click', async () => {
+    if (!redactedOutputPath) return;
+    const filename = redactedOutputPath.split(/[\\/]/).pop();
+    const response = await fetch('/deidentify/download?path=' + encodeURIComponent(redactedOutputPath));
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // New document
+  document.getElementById('newDocBtn').addEventListener('click', () => {
+    clearFile();
+    progressCard.classList.remove('visible');
+    resultsCard.classList.remove('visible');
+    redactedOutputPath = null;
+    resetSteps();
+    processBtn.disabled = true;
+    btnIcon.textContent = '🛡️';
+    btnText.textContent = 'De-Identify Document';
+  });
+</script>
+</body>
+</html>

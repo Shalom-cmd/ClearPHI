@@ -1,0 +1,20 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment — NEVER commit passwords
+.env
+
+# Patient documents — NEVER commit PHI
+input_docs/
+output_docs/
+logs/
+
+# VS Code
+.vscode/
+
+# Mac
+.DS_Store
