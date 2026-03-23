@@ -96,23 +96,18 @@ def deidentify_upload():
     uploaded_file.save(tmp_path)
 
     try:
-        raw_text = extract_text(tmp_path)
-        result = deidentify_text(raw_text, document_id=document_id)
+            # Convert PDF to DOCX if needed
+            if ext == ".pdf":
+                from src.engine.converter import pdf_to_docx
+                docx_path = pdf_to_docx(tmp_path)
+            else:
+                docx_path = tmp_path
 
-        output_dir = "output_docs"
-        os.makedirs(output_dir, exist_ok=True)
-        base_name = os.path.splitext(uploaded_file.filename)[0]
-        output_filename = f"REDACTED_{base_name}.txt"
-        output_path = os.path.join(output_dir, output_filename)
+            # Targeted redaction — name, DOB, MRN only
+            from src.engine.redactor import redact_docx
+            result = redact_docx(docx_path, document_id=document_id)
 
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(result["redacted_text"])
-
-        result["output_path"] = output_path
-        log_path = save_redaction_log(result)
-        result["log_path"] = log_path
-
-        return jsonify(result), 200
+            return jsonify(result), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -121,22 +116,34 @@ def deidentify_upload():
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
 
-
-# ── Download redacted file ─────────────────────────────────────
 @app.route("/deidentify/download", methods=["GET"])
 @login_required
 def download_file():
     file_path = request.args.get("path")
     if not file_path:
         return jsonify({"error": "Missing path parameter"}), 400
-    if not os.path.exists(file_path):
-        return jsonify({"error": "File not found"}), 404
-    return send_file(
-        os.path.abspath(file_path),
-        as_attachment=True,
-        download_name=os.path.basename(file_path)
+
+    # Normalize path — handle backslashes and spaces
+    file_path = os.path.normpath(file_path)
+    abs_path = os.path.abspath(file_path)
+
+    # Security check — must be inside output_docs
+    output_dir = os.path.abspath("output_docs")
+    if not abs_path.startswith(output_dir):
+        return jsonify({"error": "Invalid file path"}), 403
+
+    if not os.path.exists(abs_path):
+        # Log what we looked for to help debug
+        app.logger.error(f"File not found: {abs_path}")
+        return jsonify({"error": f"File not found: {abs_path}"}), 404
+
+    fname = os.path.basename(abs_path)
+    mimetype = (
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        if fname.endswith(".docx") else "text/plain"
     )
 
+    return send_file(abs_path, as_attachment=True, download_name=fname, mimetype=mimetype)
 
 # ── File path endpoint (AnythingLLM skill) ─────────────────────
 @app.route("/deidentify", methods=["POST"])
