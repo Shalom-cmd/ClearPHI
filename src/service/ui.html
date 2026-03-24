@@ -742,7 +742,7 @@
     <div class="info-item">
       <div class="info-item-icon">📋</div>
       <div class="info-item-text">
-        <strong>18 HIPAA Identifiers</strong>
+        <strong>3 HIPAA Identifiers</strong>
         All Safe Harbor categories covered
       </div>
     </div>
@@ -823,7 +823,7 @@
           <div class="step-dot" id="dot3">3</div>
           <div>
             <div class="step-label">Scanning for PHI</div>
-            <div class="step-sublabel">Identifying all 18 HIPAA Safe Harbor identifiers</div>
+            <div class="step-sublabel">Identifying 3 HIPAA Safe Harbor identifiers</div>
           </div>
         </div>
         <div class="step" id="step4">
@@ -870,7 +870,7 @@
     </div>
 
     <div class="entity-section">
-      <div class="entity-section-header">Redacted Identifier Types</div>
+      <div class="entity-section-header">Redacted Summary</div>
       <div class="entity-list" id="entityList"></div>
     </div>
 
@@ -1068,14 +1068,28 @@
     document.getElementById('resultSubtitle').textContent =
       result.total_redactions + ' PHI items removed · Audit log saved · Ready for research';
 
-    // Entity chips
+// Redaction summary — clean three-field display
     const entityList = document.getElementById('entityList');
     entityList.innerHTML = '';
-    Object.entries(counts).sort((a,b) => b[1]-a[1]).forEach(([entity, count]) => {
-      const chip = document.createElement('div');
-      chip.className = 'entity-chip';
-      chip.innerHTML = `${entity.replace(/_/g,' ')} <span class="entity-chip-count">${count}</span>`;
-      entityList.appendChild(chip);
+
+    const fieldLabels = {
+      'PATIENT_NAME': 'Patient Name',
+      'DATE_OF_BIRTH': 'Date of Birth',
+      'MRN': 'Medical Record Number'
+    };
+
+    Object.entries(fieldLabels).forEach(([key, label]) => {
+      const count = counts[key] || 0;
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid #f3f4f6;';
+      row.innerHTML = count > 0
+        ? `<span style="color:#059669; font-size:18px;">✅</span>
+           <span style="font-size:14px; font-weight:500; color:#0f1f3d; flex:1;">${label}</span>
+           <span style="font-size:13px; color:#6b7280;">${count} instance${count !== 1 ? 's' : ''} redacted</span>`
+        : `<span style="color:#d97706; font-size:18px;">⚠️</span>
+           <span style="font-size:14px; font-weight:500; color:#6b7280; flex:1;">${label}</span>
+           <span style="font-size:13px; color:#d97706;">not found in document</span>`;
+      entityList.appendChild(row);
     });
 
     // Preserved values
