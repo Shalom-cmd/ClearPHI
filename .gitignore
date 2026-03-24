@@ -18,3 +18,4 @@ logs/
 
 # Mac
 .DS_Store
+requirements.txt
