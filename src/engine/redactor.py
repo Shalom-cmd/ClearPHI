@@ -363,7 +363,7 @@ def _extract_name_from_page1(doc: Document) -> str | None:
                         if is_valid_name(candidate):
                             return _clean_name(candidate)
 
-    break  # first table only
+        break  # first table only
 
     # ── Priority 3: Paragraph patterns — checked in order ──
     for para in doc.paragraphs[:30]:
