@@ -316,7 +316,17 @@ def _extract_name_from_page1(doc: Document) -> str | None:
         if not re.match(r"^[A-Za-z\s\-\'\.]+$", name):
             return False
         return True
-
+    
+    # ── Priority 0: Bold standalone paragraph — name as document title/heading ──
+    for para in doc.paragraphs[:5]:
+        text = para.text.strip()
+        if not text:
+            continue
+        is_bold = para.runs and any(run.bold for run in para.runs)
+        if is_bold and re.match(r'^[A-Z][a-zA-Z\-\']+([\s][A-Z][a-zA-Z\-\']+){1,3}$', text):
+            if is_valid_name(text):
+                return _clean_name(_normalize_name(text))
+        
     # ── Priority 1: "Re: FirstName LastName, DOB..." subject line ──
     for para in doc.paragraphs[:30]:
         text = para.text.strip()
@@ -328,15 +338,32 @@ def _extract_name_from_page1(doc: Document) -> str | None:
 
     # ── Priority 2: Table label → value (most reliable) ──
     for table in doc.tables:
-        for row in table.rows:
+        rows = table.rows
+        if not rows:
+            continue
+
+        # Layout A: label | value in the SAME row (e.g. "Patient Name" | "John Smith")
+        for row in rows:
             cells = [c.text.strip() for c in row.cells]
             for i, cell in enumerate(cells):
                 if re.match(r'^(Patient\s*Name|Full\s*Name|Name)$', cell, re.IGNORECASE):
-                    if i + 1 < len(cells):
+                    if i + 1 < len(cells) and cells[i + 1]:
                         candidate = _normalize_name(cells[i + 1].strip())
                         if is_valid_name(candidate):
                             return _clean_name(candidate)
-        break  # first table only
+
+        # Layout B: label is a COLUMN HEADER in row 0, value is in row 1 below it
+        if len(rows) >= 2:
+            header_cells = [c.text.strip() for c in rows[0].cells]
+            for col_idx, header in enumerate(header_cells):
+                if re.match(r'^(Patient\s*Name|Full\s*Name|Name)$', header, re.IGNORECASE):
+                    value = rows[1].cells[col_idx].text.strip()
+                    if value:
+                        candidate = _normalize_name(value)
+                        if is_valid_name(candidate):
+                            return _clean_name(candidate)
+
+    break  # first table only
 
     # ── Priority 3: Paragraph patterns — checked in order ──
     for para in doc.paragraphs[:30]:
