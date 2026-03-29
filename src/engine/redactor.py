@@ -18,51 +18,82 @@ DOB_LABEL_PATTERNS = [
     re.compile(
         r'\b(DOB|D\.O\.B\.?|Date\s*of\s*Birth|Birth\s*Date|Birthdate|Born)[:\s]*'
         r'('
-        r'\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}'          # 01/15/1980 or 1-15-80
+        r'\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}'
         r'|'
-        r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}'  # Jan 15, 1980
+        r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}'
         r'|'
-        r'\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}'    # 15 Jan 1980
+        r'\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}'
         r')',
         re.IGNORECASE
-
     ),
 ]
 
-# Standalone dates only when near a DOB label — captured separately
 STANDALONE_DATE_PATTERNS = [
     re.compile(r'\b\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}\b'),
     re.compile(r'\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}\b', re.IGNORECASE),
     re.compile(r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?\s+\d{1,2},?\s+\d{4}\b', re.IGNORECASE),
 ]
 
-NAME_LABEL_PATTERNS = [	
+NAME_LABEL_PATTERNS = [
+    # Pattern 0: Labeled field — "Patient Name: John Smith" / "Patient: DOE, JANE K"
     re.compile(
         r'\b(Patient[\'\s]*s?\s*Name|Patient\s*Name|Full\s*Name|Patient|Name)[:\s]+'
         r'([A-Z][a-zA-Z\-\']+(?:,\s*[A-Z][a-zA-Z\-\']+)?(?:\s+[A-Z][a-zA-Z\-\'\.]+){0,3})'
-        r'(?=\s*$|\s*\n|\s+(?:DOB|MRN|SSN|Phone|Address|Age|DATE|FILE|is\s+a\b|was\b|presents\b))',
+        r'(?=\s*$|\s*\n|\s*\||\s+(?:DOB|MRN|SSN|Phone|Address|Age|DATE|FILE|is\s+a\b|was\b|presents\b))',
         re.IGNORECASE
     ),
+
+    # Pattern 1: "Patient John Smith is/was/presents..."
     re.compile(
         r'\bPatient\s+'
         r'([A-Z][a-zA-Z\-\']+(?:\s+[A-Z][a-zA-Z\-\'\.]+){0,3})'
         r'(?=\s+(?:is|was|has|had|presents|presented|denies|reports|states|called|reached)\b)',
         re.IGNORECASE
     ),
-    # "Mr./Mrs./Ms./Miss FirstName LastName" — patient honorifics only, never Dr/Prof
-        re.compile(
-            r'\b(Mr|Mrs|Ms|Miss)\.?\s+'
-            r'([A-Z][a-zA-Z\-\']+(?:\s+[A-Z]\.?)?(?:\s+[A-Z][a-zA-Z\-\']+){0,2})',
-            re.IGNORECASE
-        ),
-    # "Re: FirstName LastName" or "Re: FirstName LastName," — referral letter format
-        re.compile(
-            r'\bRe:\s+'
-            r'([A-Z][a-zA-Z\-\']+(?:\s+[A-Z][a-zA-Z\-\']+){1,3})'
-            r'(?=\s*,|\s+DOB|\s+MRN|\s+DOB)',
-            re.IGNORECASE
-        ),
+
+    # Pattern 2: "Mr./Mrs./Ms./Miss" + EITHER "Last, First [Initial]" OR "First [Mid] Last"
+    re.compile(
+        r'\b(Mr|Mrs|Ms|Miss)\.?\s+'
+        r'('
+        r'[A-Z][A-Za-z\-\']+,\s+[A-Z][A-Za-z\-\']+(?:\s+[A-Z]\.?)?'
+        r'|'
+        r'[A-Z][a-zA-Z\-\']+(?:\s+[A-Z]\.?)?(?:\s+[A-Z][a-zA-Z\-\']+){0,2}'
+        r')',
+        re.IGNORECASE
+    ),
+
+    # Pattern 3: "Re: FirstName LastName[, DOB/MRN]" — referral letter subject line
+    re.compile(
+        r'\bRe:\s+'
+        r'([A-Z][a-zA-Z\-\']+(?:\s+[A-Z][a-zA-Z\-\']+){1,3})'
+        r'(?=\s*,|\s+DOB|\s+MRN)',
+        re.IGNORECASE
+    ),
+
+    # Pattern 4: "...my patient, Last, First [Initial], DOB/MRN/("
+    re.compile(
+        r'\bpatient,?\s+'
+        r'([A-Z][A-Za-z\-\']+,\s+[A-Z][A-Za-z\-\']+(?:\s+[A-Z]\.?)?)'
+        r'(?=\s*,|\s+DOB|\s+MRN|\s+\()',
+        re.IGNORECASE
+    ),
+
+    # Pattern 5: "...my patient, First Last, DOB/MRN/("
+    re.compile(
+        r'\bpatient,?\s+'
+        r'([A-Z][A-Za-z\-\']+\s+[A-Z][A-Za-z\-\']+(?:\s+[A-Z]\.?)?)'
+        r'(?=\s*,|\s+DOB|\s+MRN|\s+\()',
+        re.IGNORECASE
+    ),
+
+    # Pattern 6: Bare "Last, First [Initial]" when followed within 80 chars by DOB or MRN
+    re.compile(
+        r'\b([A-Z][A-Za-z\-\']+),\s+([A-Z][A-Za-z\-\']+(?:\s+[A-Z]\.?)?)'
+        r'(?=[^.]{0,80}(?:DOB|D\.O\.B|Date\s+of\s+Birth|MRN|Medical\s+Record))',
+        re.IGNORECASE
+    ),
 ]
+
 
 # ─────────────────────────────────────────────
 # HELPERS
@@ -81,38 +112,194 @@ def _get_all_text_from_docx(doc: Document) -> str:
                     parts.append(cell.text)
     return "\n".join(parts)
 
-# Words that are section headings, not patient names
+
 NON_NAME_WORDS = {
     'demographics', 'information', 'details', 'summary', 'report',
     'note', 'notes', 'record', 'data', 'history', 'profile',
     'unknown', 'confidential', 'patient', 'laboratory', 'discharge',
-    'referral', 'clinical', 'medical', 'intake', 'admission'
+    'referral', 'clinical', 'medical', 'intake', 'admission',
+    'letter', 'evaluation', 'consultation', 'assessment', 'follow', 'update',
+    'the', 'and', 'for', 'with', 'date', 'birth',
+    'none', 'n/a', 'na', 'mr', 'mrs', 'ms', 'miss', 'dr'
 }
+
+SUFFIXES = {
+    'i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii',
+    'jr', 'jr.', 'sr', 'sr.', 'esq', 'esq.',
+    'md', 'md.', 'do', 'do.', 'phd', 'phd.'
+}
+
+CONNECTORS = {'de', 'la', 'van', 'von', 'del', 'le', 'el', 'bin', 'binti', 'al'}
+
 
 def _normalize_name(name: str) -> str:
     """
-    Convert last-name-first format to first-last.
-    'MAKENA, SHALOM' → 'Shalom Makena'
-    'DOE, REGINA' → 'Regina Doe'
+    Normalize a patient name to 'Firstname [Middle] Lastname' order.
+
+    Handles:
+      MAKENA, SHALOM          -> Shalom Makena
+      MAKENA, SHALOM M        -> Shalom M Makena
+      MAKENA, SHALOM MARIE    -> Shalom Marie Makena
+      DOE, JANE K             -> Jane K Doe
+      O'BRIEN, JAMES F        -> James F O'Brien
+      WASHINGTON-BANKS, L     -> L Washington-Banks
+      DE LA CRUZ, MARIA       -> Maria De La Cruz
+      JOHN SMITH              -> John Smith  (unchanged)
     """
+    name = name.strip()
+
     comma_match = re.match(
-        r'^([A-Za-z\-\']+),\s*([A-Za-z\-\']+(?:\s+[A-Za-z\-\']+)?)$',
-        name.strip()
+        r"^([A-Za-z][A-Za-z\-\']*(?:\s+[A-Za-z][A-Za-z\-\']*)*)"
+        r",\s*"
+        r"([A-Za-z][A-Za-z\-\']*)"
+        r"((?:\s+[A-Za-z]\.?)*)?$",
+        name
     )
     if comma_match:
-        last = comma_match.group(1).strip().title()
+        last  = comma_match.group(1).strip().title()
         first = comma_match.group(2).strip().title()
+        mid   = (comma_match.group(3) or "").strip().title()
+        if mid:
+            return f"{first} {mid} {last}"
         return f"{first} {last}"
-    # Normalize ALL CAPS to title case
+
     if name.isupper():
         return name.title()
+
     return name
+
 
 def _clean_name(name: str) -> str:
     """Strip trailing punctuation and whitespace from extracted name."""
     return re.sub(r'[\s.,;:]+$', '', name.strip())
 
+
+def _split_name_parts(name: str):
+    """
+    Split a normalized 'First [Middle...] Last' name into
+    (first, middles, last) with suffixes stripped.
+    Returns (None, [], None) if name is too short.
+
+    Examples:
+      'Shalom M Makena'            -> ('Shalom', ['M'], 'Makena')
+      'Theodore James Harrington'  -> ('Theodore', ['James'], 'Harrington')
+      'Rosa Mendez-Villarreal'     -> ('Rosa', [], 'Mendez-Villarreal')
+      'Jane Doe'                   -> ('Jane', [], 'Doe')
+    """
+    parts = name.strip().split()
+    if len(parts) < 2:
+        return None, [], None
+
+    while parts and parts[-1].lower() in SUFFIXES:
+        parts.pop()
+    if len(parts) < 2:
+        return None, [], None
+
+    first   = parts[0]
+    last    = parts[-1]
+    middles = parts[1:-1]
+    return first, middles, last
+
+
+def _build_name_variants(original_name: str) -> list[str]:
+    """
+    Build all search variants from a patient name string.
+
+    For 'MAKENA, SHALOM M' generates:
+      'Shalom M Makena', 'Shalom Makena', 'MAKENA, SHALOM M',
+      'Makena, Shalom M', 'Makena, Shalom', 'SHALOM MAKENA',
+      'Shalom M', 'Makena', 'Shalom'  (last/first if 5+ chars)
+    """
+    original_name = original_name.strip()
+    if not original_name:
+        return []
+
+    normalized = _normalize_name(original_name)
+    first, middles, last = _split_name_parts(normalized)
+
+    if first is None:
+        return []
+
+    variants = set()
+
+    # Full normalized form
+    if middles:
+        variants.add(f"{first} {' '.join(middles)} {last}")
+    else:
+        variants.add(f"{first} {last}")
+
+    # First + Last (no middle) — always add for 3-part names
+    variants.add(f"{first} {last}")
+
+    # Comma format variations
+    if middles:
+        variants.add(f"{last}, {first} {' '.join(middles)}")
+        variants.add(f"{last.upper()}, {first.upper()} {' '.join(m.upper() for m in middles)}")
+    variants.add(f"{last}, {first}")
+    variants.add(f"{last.upper()}, {first.upper()}")
+
+    # ALL CAPS no comma
+    variants.add(f"{first.upper()} {last.upper()}")
+    if middles:
+        variants.add(f"{first.upper()} {' '.join(m.upper() for m in middles)} {last.upper()}")
+
+    # First + middle (initial and full word)
+    if middles:
+        mid_initial = middles[0][0]
+        variants.add(f"{first} {mid_initial}")
+        variants.add(f"{first} {mid_initial}.")
+        if len(middles[0]) > 1:
+            variants.add(f"{first} {middles[0]}")
+
+    # Last, First initial
+    variants.add(f"{last}, {first[0]}")
+    variants.add(f"{last} {first[0]}")
+
+    # Single names — only if long enough to avoid false positives
+    if len(last) >= 5:
+        variants.add(last)
+        variants.add(last.upper())
+    if len(first) >= 5:
+        variants.add(first)
+        variants.add(first.upper())
+
+    # Hyphenated last name — add each part separately
+    if '-' in last:
+        for part in last.split('-'):
+            if len(part) >= 5:
+                variants.add(part)
+
+    # Always add original exactly as provided
+    variants.add(original_name)
+
+    # Filter too-short or non-name words
+    filtered = [
+        v for v in variants
+        if len(v.strip()) >= 2
+        and v.strip().lower() not in NON_NAME_WORDS
+    ]
+
+    # Longest first — prevents partial matches clobbering full matches
+    filtered.sort(key=len, reverse=True)
+
+    # Deduplicate case-insensitively
+    seen = set()
+    unique = []
+    for v in filtered:
+        key = v.strip().lower()
+        if key not in seen:
+            seen.add(key)
+            unique.append(v.strip())
+
+    return unique
+
+
 def _extract_name_from_page1(doc: Document) -> str | None:
+    """
+    Discover the patient name from the first page of a DOCX.
+    Tries multiple strategies in priority order.
+    Returns a normalized name string, or None if not found.
+    """
 
     def is_valid_name(name: str) -> bool:
         if not name or len(name.strip()) < 2:
@@ -129,21 +316,17 @@ def _extract_name_from_page1(doc: Document) -> str | None:
         if not re.match(r"^[A-Za-z\s\-\'\.]+$", name):
             return False
         return True
-    
-    # ── Highest priority: "Re: FirstName LastName, DOB..." line ──
+
+    # ── Priority 1: "Re: FirstName LastName, DOB..." subject line ──
     for para in doc.paragraphs[:30]:
         text = para.text.strip()
-        match = re.search(
-            r'\bRe:\s+([A-Z][a-zA-Z\-\']+(?:\s+[A-Z][a-zA-Z\-\']+){1,3})'
-            r'(?=\s*,|\s+DOB|\s+MRN)',
-            text, re.IGNORECASE
-        )
-        if match:
-            name = match.group(1).strip()
+        m = NAME_LABEL_PATTERNS[3].search(text)
+        if m:
+            name = _clean_name(_normalize_name(m.group(1).strip()))
             if is_valid_name(name):
-                return _clean_name(_normalize_name(name))
-            
-    # ── Check tables FIRST — most reliable source ──
+                return name
+
+    # ── Priority 2: Table label → value (most reliable) ──
     for table in doc.tables:
         for row in table.rows:
             cells = [c.text.strip() for c in row.cells]
@@ -155,91 +338,56 @@ def _extract_name_from_page1(doc: Document) -> str | None:
                             return _clean_name(candidate)
         break  # first table only
 
-    # ── Then check first 20 paragraphs ──
-    for para in doc.paragraphs[:20]:
+    # ── Priority 3: Paragraph patterns — checked in order ──
+    for para in doc.paragraphs[:30]:
         text = para.text.strip()
-        # Pattern 0: "Patient Name: John Smith"
-        match = NAME_LABEL_PATTERNS[0].search(text)
-        if match:
-            name = _normalize_name(match.group(2).strip())
-            if is_valid_name(name):
-                return _clean_name(name)
-        # Pattern 1: "Patient John Smith is..."
-        match = NAME_LABEL_PATTERNS[1].search(text)
-        if match:
-            name = match.group(1).strip()
+        if not text:
+            continue
+
+        # Pattern 0: "Patient Name: John Smith" / "Patient: DOE, JANE K"
+        m = NAME_LABEL_PATTERNS[0].search(text)
+        if m:
+            name = _clean_name(_normalize_name(m.group(2).strip()))
             if is_valid_name(name):
                 return name
-        # Pattern 2: "Mr./Mrs./Ms. John Smith"
-        match = NAME_LABEL_PATTERNS[2].search(text)
-        if match:
-            name = match.group(2).strip()
+
+        # Pattern 1: "Patient John Smith is/was..."
+        m = NAME_LABEL_PATTERNS[1].search(text)
+        if m:
+            name = m.group(1).strip()
             if is_valid_name(name):
                 return name
-        match = NAME_LABEL_PATTERNS[3].search(text)
-        if match:
-            name = match.group(1).strip()
+
+        # Pattern 2: "Mr./Mrs. Last, First Initial" or "Mr./Mrs. First Last"
+        m = NAME_LABEL_PATTERNS[2].search(text)
+        if m:
+            name = _clean_name(_normalize_name(m.group(2).strip()))
             if is_valid_name(name):
-                return _clean_name(_normalize_name(name))
+                return name
+
+        # Pattern 4: "my patient, Last, First [Initial], DOB..."
+        m = NAME_LABEL_PATTERNS[4].search(text)
+        if m:
+            name = _clean_name(_normalize_name(m.group(1).strip()))
+            if is_valid_name(name):
+                return name
+
+        # Pattern 5: "my patient, First Last, DOB..."
+        m = NAME_LABEL_PATTERNS[5].search(text)
+        if m:
+            name = m.group(1).strip()
+            if is_valid_name(name):
+                return name
+
+        # Pattern 6: Bare "Last, First [Initial]" near DOB/MRN (safety net)
+        m = NAME_LABEL_PATTERNS[6].search(text)
+        if m:
+            raw = f"{m.group(1)}, {m.group(2)}"
+            name = _clean_name(_normalize_name(raw))
+            if is_valid_name(name):
+                return name
+
     return None
-
-def _build_name_variants(original_name: str) -> list[str]:
-    """Build all search variants from a patient name."""
-    # Clean trailing punctuation from the whole name first
-    original_name = _normalize_name(original_name)
-    original_name = re.sub(r'[.,;:]+$', '', original_name.strip())
-    parts = original_name.strip().split()
-    clean_parts = []
-    connectors = {'de', 'la', 'van', 'von', 'del', 'le', 'el', 'bin', 'binti'}
-
-    for part in parts:
-        stripped = part.rstrip('.,')
-        if stripped[0].islower() and stripped.lower() not in connectors:
-            break
-        clean_parts.append(stripped)
-
-    if not clean_parts:
-        return []
-
-    # Full name with suffix (e.g. Theodore James Harrington III)
-    full_with_suffix = " ".join(clean_parts)
-
-    # Core name without roman numerals/suffixes
-    core_parts = [
-        p for p in clean_parts
-        if not re.match(r'^(I|II|III|IV|V|VI|VII|Jr\.?|Sr\.?|Esq\.?)$', p, re.IGNORECASE)
-    ]
-    core_name = " ".join(core_parts)
-
-    variants = []
-
-    if len(clean_parts) >= 2:
-        variants.append(full_with_suffix)
-
-    if core_name != full_with_suffix and len(core_parts) >= 2:
-        variants.append(core_name)
-
-    for part in core_parts:
-        clean = part.rstrip('.,')
-        if len(clean) >= 4:
-            variants.append(clean)
-
-    if len(core_parts) >= 2:
-        variants.append(f"{core_parts[0]} {core_parts[-1][0]}")
-        variants.append(f"{core_parts[0]} {core_parts[-1][0]}.")
-        variants.append(f"{core_parts[-1]} {core_parts[0][0]}")
-        variants.append(f"{core_parts[-1]}, {core_parts[0][0]}")
-
-    variants.sort(key=len, reverse=True)
-
-    seen = set()
-    unique = []
-    for v in variants:
-        if v.lower() not in seen and len(v) >= 2:
-            seen.add(v.lower())
-            unique.append(v)
-
-    return unique
 
 
 def _replace_in_text(text: str, pattern_or_string, replacement: str, is_regex: bool = True) -> tuple[str, int]:
@@ -277,7 +425,6 @@ def _apply_to_merged_runs(para, replacements: list[tuple]) -> int:
         total += count
 
     if new_text != full_text:
-        # Put all text in first run, clear the rest
         para.runs[0].text = new_text
         for run in para.runs[1:]:
             run.text = ""
@@ -313,17 +460,17 @@ def redact_docx(input_path: str, document_id: str = "unknown") -> dict:
     Returns result dict with output_path, redaction counts, and audit log path.
     """
     doc = Document(input_path)
-    redaction_log = []
     counts = {"PATIENT_NAME": 0, "DATE_OF_BIRTH": 0, "MRN": 0}
 
     # ── Step 1: Discover patient name from page 1 ──
     patient_name = _extract_name_from_page1(doc)
     name_variants = _build_name_variants(patient_name) if patient_name else []
 
-# ── Step 2: Build tagged replacement list ──
+    # ── Step 2: Build tagged replacement list ──
     # Each entry: (pattern, replacement, is_regex, entity_type)
     tagged_replacements = []
-    # MRN — must have explicit label, min 5 digits, no Gleason-style patterns
+
+    # MRN — must have explicit label, min 5 digits
     tagged_replacements.append((
         re.compile(
             r'\b(MRN|Medical\s*Record\s*(?:Number)?|Medical\s*Record\s*No\.?|Record\s*#|Patient\s*ID)'
@@ -353,7 +500,7 @@ def redact_docx(input_path: str, document_id: str = "unknown") -> dict:
         "DATE_OF_BIRTH"
     ))
 
-    # Name variants
+    # Name variants — longest first to prevent partial clobber
     for variant in name_variants:
         escaped = re.escape(variant)
         tagged_replacements.append((
@@ -363,13 +510,13 @@ def redact_docx(input_path: str, document_id: str = "unknown") -> dict:
             "PATIENT_NAME"
         ))
 
-# ── Step 3: Process all paragraphs ──
+    # ── Step 3: Process all paragraphs ──
     for para in doc.paragraphs:
         full_text = "".join(run.text for run in para.runs)
         if not full_text.strip():
             continue
 
-        # Temporarily mask email addresses to prevent partial redaction
+        # Mask emails to prevent partial name redaction inside addresses
         emails = re.findall(r'[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}', full_text)
         masked_text = full_text
         email_map = {}
@@ -380,10 +527,13 @@ def redact_docx(input_path: str, document_id: str = "unknown") -> dict:
 
         new_text = masked_text
         for pattern, replacement, is_regex, entity_type in tagged_replacements:
-            new_text, n = re.subn(pattern, replacement, new_text) if is_regex else (new_text.replace(pattern, replacement), new_text.count(pattern))
+            if is_regex:
+                new_text, n = re.subn(pattern, replacement, new_text)
+            else:
+                n = new_text.count(pattern)
+                new_text = new_text.replace(pattern, replacement)
             counts[entity_type] += n
 
-        # Restore email addresses
         for placeholder, email in email_map.items():
             new_text = new_text.replace(placeholder, email)
 
@@ -392,7 +542,7 @@ def redact_docx(input_path: str, document_id: str = "unknown") -> dict:
             for run in para.runs[1:]:
                 run.text = ""
 
-# ── Step 4: Process all tables ──
+    # ── Step 4: Process all tables ──
     for table in doc.tables:
         seen_cell_ids = set()
         for row in table.rows:
@@ -402,7 +552,6 @@ def redact_docx(input_path: str, document_id: str = "unknown") -> dict:
                 cell = cells[i]
                 cell_id = id(cell._tc)
 
-                # Skip merged cell duplicates
                 if cell_id in seen_cell_ids:
                     i += 1
                     continue
@@ -410,7 +559,6 @@ def redact_docx(input_path: str, document_id: str = "unknown") -> dict:
 
                 cell_label = cell.text.strip().lower()
 
-                # Check if this cell is a known label — direct replace next cell
                 if re.match(r'^(mrn|medical record|medical record number|record #|patient id)$', cell_label):
                     if i + 1 < len(cells):
                         val = cells[i + 1]
@@ -461,7 +609,11 @@ def redact_docx(input_path: str, document_id: str = "unknown") -> dict:
                         masked_text = masked_text.replace(email, placeholder)
                     new_text = masked_text
                     for pattern, replacement, is_regex, entity_type in tagged_replacements:
-                        new_text, n = re.subn(pattern, replacement, new_text) if is_regex else (new_text.replace(pattern, replacement), new_text.count(pattern))
+                        if is_regex:
+                            new_text, n = re.subn(pattern, replacement, new_text)
+                        else:
+                            n = new_text.count(pattern)
+                            new_text = new_text.replace(pattern, replacement)
                         counts[entity_type] += n
                     for placeholder, email in email_map.items():
                         new_text = new_text.replace(placeholder, email)
@@ -469,7 +621,7 @@ def redact_docx(input_path: str, document_id: str = "unknown") -> dict:
                         cell_para.runs[0].text = new_text
                         for r in cell_para.runs[1:]: r.text = ""
                 i += 1
-                                    
+
     # ── Step 5: Save redacted DOCX ──
     output_dir = "output_docs"
     os.makedirs(output_dir, exist_ok=True)
@@ -491,7 +643,6 @@ def redact_docx(input_path: str, document_id: str = "unknown") -> dict:
         "total_redactions": total,
     }
 
-    # Save log
     log_dir = "logs"
     os.makedirs(log_dir, exist_ok=True)
     ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")

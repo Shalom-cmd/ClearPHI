@@ -7,6 +7,7 @@ docs = [
     'input_docs/lab_report.docx',
     'input_docs/referral_letter.docx',
     'input_docs/edge_cases.docx',
+    'input_docs/sample_patient_note.docx',
 ]
 
 for path in docs:

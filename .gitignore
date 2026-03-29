@@ -18,5 +18,4 @@ logs/
 
 # Mac
 .DS_Store
-requirements.txt
 gunicorn_*.log

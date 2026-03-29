@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.engine.deid import deidentify_text
 
 test = (
-    "Patient:DOE, JANE| DOB: 03/22/1975 | SSN: 987-65-4321 | "
+    "Patient:DOE, JANE K| DOB: 03/22/1975 | SSN: 987-65-4321 | "
     "MRN: MRN#456789 | NPI:1234567890 | "
     "Phone: 555-867-5309 | Fax: 555-867-5310 | "
     "Email: jane.doe@hospital.org | IP: 192.168.1.50 | "
