@@ -6,7 +6,13 @@ import pytesseract
 import io
 import shutil
 
-tesseract_path = shutil.which("tesseract") or "/opt/homebrew/bin/tesseract"
+import platform
+
+if platform.system() == "Windows":
+    tesseract_path = shutil.which("tesseract") or r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+else:
+    tesseract_path = shutil.which("tesseract") or "/opt/homebrew/bin/tesseract"
+
 pytesseract.pytesseract.tesseract_cmd = tesseract_path
 
 
