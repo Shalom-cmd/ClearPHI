@@ -25,6 +25,7 @@ DOB_LABEL_PATTERNS = [
         r'\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}'    # 15 Jan 1980
         r')',
         re.IGNORECASE
+
     ),
 ]
 
@@ -35,11 +36,11 @@ STANDALONE_DATE_PATTERNS = [
     re.compile(r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?\s+\d{1,2},?\s+\d{4}\b', re.IGNORECASE),
 ]
 
-NAME_LABEL_PATTERNS = [
+NAME_LABEL_PATTERNS = [	
     re.compile(
-        r'\b(Patient\s*Name|Name)[:\s]+'
-        r'([A-Z][a-zA-Z\-\']+(?:\s+[A-Z][a-zA-Z\-\'\.]+){0,4})'
-        r'(?=\s*[\|,\n\r]|\s*$|\s+(?:DOB|MRN|SSN|Phone|Address|Age|is\s+a\b|was\b|presents\b))',
+        r'\b(Patient[\'\s]*s?\s*Name|Patient\s*Name|Full\s*Name|Patient|Name)[:\s]+'
+        r'([A-Z][a-zA-Z\-\']+(?:,\s*[A-Z][a-zA-Z\-\']+)?(?:\s+[A-Z][a-zA-Z\-\'\.]+){0,3})'
+        r'(?=\s*$|\s*\n|\s+(?:DOB|MRN|SSN|Phone|Address|Age|DATE|FILE|is\s+a\b|was\b|presents\b))',
         re.IGNORECASE
     ),
     re.compile(
@@ -87,6 +88,26 @@ NON_NAME_WORDS = {
     'unknown', 'confidential', 'patient', 'laboratory', 'discharge',
     'referral', 'clinical', 'medical', 'intake', 'admission'
 }
+
+def _normalize_name(name: str) -> str:
+    """
+    Convert last-name-first format to first-last.
+    'MAKENA, SHALOM' → 'Shalom Makena'
+    'DOE, REGINA' → 'Regina Doe'
+    """
+    comma_match = re.match(
+        r'^([A-Za-z\-\']+),\s*([A-Za-z\-\']+(?:\s+[A-Za-z\-\']+)?)$',
+        name.strip()
+    )
+    if comma_match:
+        last = comma_match.group(1).strip().title()
+        first = comma_match.group(2).strip().title()
+        return f"{first} {last}"
+    # Normalize ALL CAPS to title case
+    if name.isupper():
+        return name.title()
+    return name
+
 def _clean_name(name: str) -> str:
     """Strip trailing punctuation and whitespace from extracted name."""
     return re.sub(r'[\s.,;:]+$', '', name.strip())
@@ -99,7 +120,7 @@ def _extract_name_from_page1(doc: Document) -> str | None:
         parts = name.strip().split()
         if len(parts) == 1 and parts[0].lower() in NON_NAME_WORDS:
             return False
-        if name.isupper() and len(parts) <= 3:
+        if name.isupper() and len(parts) < 2:
             return False
         if not name[0].isupper():
             return False
@@ -120,7 +141,7 @@ def _extract_name_from_page1(doc: Document) -> str | None:
         if match:
             name = match.group(1).strip()
             if is_valid_name(name):
-                return _clean_name(name)
+                return _clean_name(_normalize_name(name))
             
     # ── Check tables FIRST — most reliable source ──
     for table in doc.tables:
@@ -129,9 +150,9 @@ def _extract_name_from_page1(doc: Document) -> str | None:
             for i, cell in enumerate(cells):
                 if re.match(r'^(Patient\s*Name|Full\s*Name|Name)$', cell, re.IGNORECASE):
                     if i + 1 < len(cells):
-                        candidate = cells[i + 1].strip()
+                        candidate = _normalize_name(cells[i + 1].strip())
                         if is_valid_name(candidate):
-                            return candidate
+                            return _clean_name(candidate)
         break  # first table only
 
     # ── Then check first 20 paragraphs ──
@@ -140,9 +161,9 @@ def _extract_name_from_page1(doc: Document) -> str | None:
         # Pattern 0: "Patient Name: John Smith"
         match = NAME_LABEL_PATTERNS[0].search(text)
         if match:
-            name = match.group(2).strip()
+            name = _normalize_name(match.group(2).strip())
             if is_valid_name(name):
-                return name
+                return _clean_name(name)
         # Pattern 1: "Patient John Smith is..."
         match = NAME_LABEL_PATTERNS[1].search(text)
         if match:
@@ -156,11 +177,16 @@ def _extract_name_from_page1(doc: Document) -> str | None:
             if is_valid_name(name):
                 return name
         match = NAME_LABEL_PATTERNS[3].search(text)
+        if match:
+            name = match.group(1).strip()
+            if is_valid_name(name):
+                return _clean_name(_normalize_name(name))
     return None
 
 def _build_name_variants(original_name: str) -> list[str]:
     """Build all search variants from a patient name."""
     # Clean trailing punctuation from the whole name first
+    original_name = _normalize_name(original_name)
     original_name = re.sub(r'[.,;:]+$', '', original_name.strip())
     parts = original_name.strip().split()
     clean_parts = []
