@@ -98,14 +98,13 @@ def deidentify_upload():
     try:
             # Convert PDF to DOCX if needed
             if ext == ".pdf":
-                from src.engine.converter import pdf_to_docx
-                docx_path = pdf_to_docx(tmp_path)
+                # Redact PDF in-place — preserves all original formatting
+                from src.engine.pdf_redactor import redact_pdf
+                result = redact_pdf(tmp_path, document_id=document_id)
             else:
-                docx_path = tmp_path
-
-            # Targeted redaction — name, DOB, MRN only
-            from src.engine.redactor import redact_docx
-            result = redact_docx(docx_path, document_id=document_id)
+                # DOCX — existing in-place redaction
+                from src.engine.redactor import redact_docx
+                result = redact_docx(tmp_path, document_id=document_id)
 
             return jsonify(result), 200
 
@@ -138,10 +137,12 @@ def download_file():
         return jsonify({"error": f"File not found: {abs_path}"}), 404
 
     fname = os.path.basename(abs_path)
-    mimetype = (
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        if fname.endswith(".docx") else "text/plain"
-    )
+    if fname.endswith(".docx"):
+        mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    elif fname.endswith(".pdf"):
+        mimetype = "application/pdf"
+    else:
+        mimetype = "application/octet-stream"
 
     return send_file(abs_path, as_attachment=True, download_name=fname, mimetype=mimetype)
 
