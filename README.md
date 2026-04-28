@@ -1,9 +1,8 @@
-The file writing tool isn't cooperating right now — here's the full README as text. Copy this into a file called `README.md` at your project root:
-
-```markdown
+````markdown
 # ClearPHI
 
-A fully local, HIPAA-compliant de-identification service for clinical documents. Redacts patient name, date of birth, and MRN from DOCX and PDF files before research upload — no patient data ever leaves the machine.
+A fully local, HIPAA-compliant de-identification tool for clinical documents. Redacts patient name, date of birth, 
+and MRN from DOCX and PDF files before research upload — no patient data ever leaves the machine.
 
 ---
 
@@ -21,7 +20,7 @@ A fully local, HIPAA-compliant de-identification service for clinical documents.
 
 ---
 
-## Architecture
+## How It Works
 
 ```
 Document In (DOCX or PDF)
@@ -51,13 +50,15 @@ redactor.py    pdf_redactor.py
      logs/*_redaction_log.json
 ```
 
+PDFs are redacted in-place using PyMuPDF redaction annotations — the original layout, tables, images, and formatting are fully preserved. Only the PHI text is replaced. DOCX files are redacted at the XML level using python-docx, also preserving all formatting.
+
 ---
 
 ## Stack
 
 | Component | Technology |
 |---|---|
-| PDF redaction | PyMuPDF 1.27+ — in-place redaction annotations |
+| PDF redaction | PyMuPDF 1.27+ — native redaction annotations |
 | DOCX redaction | python-docx — XML-level in-place redaction |
 | OCR | Tesseract 5.5.2 via pytesseract |
 | PHI detection | Custom regex patterns + Microsoft Presidio |
@@ -82,10 +83,10 @@ ClearPHI/
 │       ├── app.py              # Flask routes and endpoints
 │       ├── ui.html             # Browser UI
 │       └── login.html          # Login page
-├── input_docs/
-├── output_docs/
-├── logs/
-├── requirements.txt
+├── input_docs/                 # Drop files here for testing
+├── output_docs/                # Redacted output files saved here
+├── logs/                       # JSON audit logs per document
+└── requirements.txt
 ```
 
 ---
@@ -111,9 +112,24 @@ python src/service/app.py
 git pull
 source venv/bin/activate
 pip install -r requirements.txt
-launchctl stop com.eric.deid-service
-launchctl start com.eric.deid-service
+launchctl stop com.clearphi.service
+launchctl start com.clearphi.service
 # UI at http://localhost:5001
+```
+
+---
+
+## Quick Test
+
+```powershell
+python -c "
+from src.engine.pdf_redactor import redact_pdf
+result = redact_pdf('input_docs/YOUR_FILE.pdf', document_id='test001', mode='labeled')
+print('Output:', result['output_path'])
+print('Redactions:', result['entity_counts'])
+print('Name found:', result['patient_name_discovered'])
+print('Scanned:', result['scanned_document'])
+"
 ```
 
 ---
@@ -122,25 +138,54 @@ launchctl start com.eric.deid-service
 
 | Mode | Appearance | Use case |
 |---|---|---|
-| `labeled` | White box with `[PATIENT NAME]` | Default |
+| `labeled` | White box with `[PATIENT NAME]` in black text | Default — clean, readable output |
 | `blackbox` | Solid black box | Maximum opacity |
-| `highlight` | Yellow highlight | Review only — not for final sharing |
+| `highlight` | Yellow highlight | Review mode — not for final sharing |
+
+Pass via the API as a form field: `mode=labeled`
 
 ---
 
 ## PHI Detection
 
-**Name** — discovered from first 2000 chars, expanded into 15+ variants (full name, ALL CAPS, Last/First comma, with/without middle initial, standalone first/last if 5+ chars).
+### Patient Name
 
-**DOB** — all date formats after labels: `DOB`, `D.O.B.`, `Date of Birth`, `Birth Date`, `Birthdate`, `Born`.
+Discovered from the first 2000 characters of the document using priority-ordered patterns, then expanded into 15+ search variants:
 
-**MRN** — 6+ label styles: `MRN`, `Medical Record Number`, `Medical Record No.`, `Record #`, `Patient ID`. Ignores Gleason scores, biopsy percentages, room numbers.
+| Pattern | Example |
+|---|---|
+| Referral line | `Re: James R. Wilson, DOB...` |
+| Labeled field | `Patient Name: Maria Gonzalez` |
+| Honorific | `Mr. / Mrs. / Ms. Last, First` |
+| ALL CAPS | `WILSON, JAMES ROBERT` |
+| Mid-sentence | `patient, Last First (DOB...)` |
+
+Variants searched: full name, first/last only, ALL CAPS, comma-reversed (Last, First), with/without middle initial, standalone first and last name if 5+ characters.
+
+### Date of Birth
+
+All common date formats following any of these labels: `DOB`, `D.O.B.`, `Date of Birth`, `Birth Date`, `Birthdate`, `Born`
+
+Formats caught: `MM/DD/YYYY`, `MM-DD-YY`, `Jan 1, 2000`, `1 January 2000`, and more.
+
+### MRN
+
+Six label styles: `MRN`, `Medical Record Number`, `Medical Record No.`, `Record #`, `Patient ID`
+
+Intentionally ignores: Gleason scores (`3+4=7`), biopsy percentages (`20% of tissue`), room numbers, blood pressure readings.
 
 ---
 
 ## Scanned PDF Support
 
-Auto-detects image-only PDFs. Falls back to Tesseract OCR: renders at 300 DPI → word-level bounding boxes → coordinate mapping → redaction boxes at exact pixel locations. Takes 30–60 seconds per document.
+ClearPHI auto-detects whether a PDF contains real text or scanned images. If fewer than 100 characters of extractable text are found, it falls back to OCR:
+
+1. Each page rendered at 300 DPI
+2. Tesseract returns word-level bounding boxes with confidence scores
+3. PHI matched against OCR word list
+4. Redaction boxes placed at exact pixel coordinates, converted to PDF point space
+
+OCR processing takes 30–60 seconds per document depending on page count.
 
 ---
 
@@ -148,30 +193,65 @@ Auto-detects image-only PDFs. Falls back to Tesseract OCR: renders at 300 DPI �
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/` | Browser UI |
-| `POST` | `/login` | Authenticate |
-| `POST` | `/deidentify/upload` | Upload and redact |
-| `GET` | `/deidentify/download?path=` | Download output |
-| `GET` | `/health` | Health check |
+| `GET` | `/` | Browser UI (login required) |
+| `GET` | `/login` | Login page |
+| `POST` | `/login` | Authenticate with password |
+| `POST` | `/logout` | Clear session |
+| `POST` | `/deidentify/upload` | Upload and redact a file |
+| `GET` | `/deidentify/download?path=` | Download redacted output |
+| `POST` | `/deidentify/text` | Redact raw text (JSON body) |
+| `GET` | `/health` | Service health check |
+
+---
+
+## Audit Logs
+
+Every document processed generates a JSON log in `logs/`:
+
+```json
+{
+  "document_id": "sample_clinical_note",
+  "timestamp": "2024-09-25T00:00:00Z",
+  "output_path": "output_docs/REDACTED_sample_clinical_note.pdf",
+  "output_format": "pdf",
+  "scanned_document": false,
+  "patient_name_discovered": "James Robert Wilson",
+  "name_variants_searched": ["James Robert Wilson", "Wilson, James", "WILSON", "..."],
+  "entity_counts": {
+    "PATIENT_NAME": 14,
+    "DATE_OF_BIRTH": 1,
+    "MRN": 1
+  },
+  "total_redactions": 16
+}
+```
+
+---
+
+## Security
+
+- Flask bound to `127.0.0.1` — not accessible from the network
+- Session-based password authentication via `.env`
+- Temporary files deleted immediately after processing
+- FileVault full-disk encryption on production Mac Mini
+- Download endpoint validates all paths stay within `output_docs/`
 
 ---
 
 ## Known Issues
 
-- **Split `[PATIENT NAME]` labels** — adjacent name variant matches each get their own box. Rect-merging fix is next.
-- **"Re: , DOB , MRN" residue** — field labels remain after value redaction. Cosmetic only.
+- **Split `[PATIENT NAME]` labels** — when individual name variants match separately on the same line, each gets its own redaction box instead of one merged box. Rect-merging fix is next.
+- **"Re: , DOB , MRN" label residue** — field labels remain visible after their values are redacted on page 1. PHI values are correctly removed; this is cosmetic only.
 
 ---
 
 ## Roadmap
 
-- [ ] Rect-merging fix for split name labels
+- [ ] Rect-merging fix for split `[PATIENT NAME]` labels
 - [ ] All 18 HIPAA Safe Harbor identifiers
-- [ ] Offline LLM (Qwen / Granite via Ollama) for semantic PHI detection
+- [ ] Offline LLM layer (Qwen / Granite via Ollama) for semantic PHI detection
 - [ ] Folder batch processing
-- [ ] User-selectable redaction mode in UI
+- [ ] User-selectable redaction mode in the UI
 - [ ] Cross-platform installer (Mac + Windows)
 - [ ] RAG on de-identified document corpus
-```
-
-Save that as `README.md` in your project root alongside `requirements.txt`, then include it in your commit.
+````
