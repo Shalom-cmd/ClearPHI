@@ -1,5 +1,3 @@
-The file writing tool isn't cooperating right now — here's the full README as text. Copy this into a file called `README.md` at your project root:
-
 ```markdown
 # ClearPHI
 
