@@ -1,7 +1,8 @@
 ```markdown
 # ClearPHI
 
-A fully local, HIPAA-compliant de-identification service for clinical documents. Redacts patient name, date of birth, and MRN from DOCX and PDF files before research upload — no patient data ever leaves the machine.
+A fully local, HIPAA-compliant de-identification service for clinical documents. Redacts patient name, date of birth, and
+MRN from DOCX and PDF files before research upload — no patient data ever leaves the machine.
 
 ---
 
