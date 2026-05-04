@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Eric Jamison, MD — Patient Document De-Identification</title>
+<title>ClearPHI — Patient Document De-Identification</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -67,10 +67,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 700;
     color: white;
-    letter-spacing: -1px;
+    letter-spacing: -0.5px;
+    font-family: 'Playfair Display', serif;
   }
 
   .header-title {
@@ -87,6 +88,12 @@
     letter-spacing: 0.5px;
     text-transform: uppercase;
     margin-top: 1px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
   .hipaa-badge {
@@ -113,6 +120,24 @@
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
+  }
+
+  .btn-logout {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--gray-400);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .btn-logout:hover {
+    background: rgba(255,255,255,0.13);
+    color: white;
   }
 
   /* ── Main layout ── */
@@ -144,7 +169,7 @@
     line-height: 1.6;
   }
 
-  /* ── Upload card ── */
+  /* ── Cards ── */
   .card {
     background: var(--white);
     border-radius: var(--radius);
@@ -184,9 +209,7 @@
     margin-top: 1px;
   }
 
-  .card-body {
-    padding: 28px;
-  }
+  .card-body { padding: 28px; }
 
   /* ── Drop zone ── */
   .drop-zone {
@@ -215,11 +238,7 @@
     height: 100%;
   }
 
-  .drop-icon {
-    font-size: 40px;
-    margin-bottom: 14px;
-    display: block;
-  }
+  .drop-icon { font-size: 40px; margin-bottom: 14px; display: block; }
 
   .drop-zone h3 {
     font-size: 16px;
@@ -228,10 +247,7 @@
     margin-bottom: 6px;
   }
 
-  .drop-zone p {
-    font-size: 13px;
-    color: var(--gray-400);
-  }
+  .drop-zone p { font-size: 13px; color: var(--gray-400); }
 
   .drop-zone .file-types {
     display: inline-flex;
@@ -277,7 +293,6 @@
 
   .file-icon.pdf { background: #fef2f2; }
   .file-icon.docx { background: #eff6ff; }
-
   .file-info { flex: 1; min-width: 0; }
 
   .file-name {
@@ -289,24 +304,34 @@
     text-overflow: ellipsis;
   }
 
-  .file-size {
-    font-size: 12px;
-    color: var(--gray-400);
-    margin-top: 2px;
-  }
+  .file-size { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
 
-  .remove-file {
+  .btn-remove {
     background: none;
     border: none;
-    cursor: pointer;
     color: var(--gray-400);
+    cursor: pointer;
     font-size: 18px;
     padding: 4px;
     border-radius: 4px;
     transition: color 0.15s;
   }
 
-  .remove-file:hover { color: var(--red); }
+  .btn-remove:hover { color: var(--red); }
+
+  /* ── Error ── */
+  .error-box {
+    display: none;
+    background: var(--red-light);
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--red);
+    margin-top: 16px;
+  }
+
+  .error-box.visible { display: block; }
 
   /* ── Process button ── */
   .btn-process {
@@ -322,110 +347,100 @@
     font-weight: 600;
     cursor: pointer;
     letter-spacing: 0.3px;
-    transition: all 0.2s ease;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
   }
 
   .btn-process:hover:not(:disabled) {
     background: var(--navy-light);
     transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 4px 16px rgba(15,31,61,0.25);
   }
 
   .btn-process:disabled {
-    background: var(--gray-200);
-    color: var(--gray-400);
+    opacity: 0.45;
     cursor: not-allowed;
     transform: none;
-    box-shadow: none;
   }
 
-  /* ── Progress ── */
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Progress card ── */
   .progress-card {
     display: none;
-    margin-top: 20px;
+    margin-top: 24px;
   }
 
   .progress-card.visible { display: block; }
 
-  .progress-steps {
+  .step-list { list-style: none; padding: 0; }
+
+  .step-item {
     display: flex;
-    flex-direction: column;
-    gap: 0;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--gray-100);
   }
 
-  .step {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 14px 18px;
-    border-radius: var(--radius-sm);
-    transition: background 0.2s;
-  }
+  .step-item:last-child { border-bottom: none; }
 
   .step-dot {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    border: 2px solid var(--gray-200);
+    background: var(--gray-100);
+    border: 1.5px solid var(--gray-200);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-400);
     flex-shrink: 0;
-    background: white;
-    color: var(--gray-400);
     transition: all 0.3s;
-    margin-top: 1px;
   }
 
-  .step.active .step-dot {
-    border-color: var(--blue);
-    background: var(--blue);
-    color: white;
-    animation: spin-dot 1s linear infinite;
+  .step-item.active .step-dot {
+    background: #dbeafe;
+    border-color: var(--blue-light);
+    color: var(--blue);
   }
 
-  .step.done .step-dot {
+  .step-item.done .step-dot {
+    background: var(--green-light);
     border-color: var(--green);
-    background: var(--green);
-    color: white;
-    animation: none;
+    color: var(--green);
   }
 
-  .step.error .step-dot {
+  .step-item.error .step-dot {
+    background: var(--red-light);
     border-color: var(--red);
-    background: var(--red);
-    color: white;
-    animation: none;
+    color: var(--red);
   }
 
-  @keyframes spin-dot {
-    0% { box-shadow: 0 0 0 0 rgba(26,86,219,0.4); }
-    70% { box-shadow: 0 0 0 8px rgba(26,86,219,0); }
-    100% { box-shadow: 0 0 0 0 rgba(26,86,219,0); }
-  }
-
-  .step-label {
+  .step-text {
     font-size: 14px;
-    font-weight: 500;
-    color: var(--gray-600);
-    margin-top: 4px;
-  }
-
-  .step.active .step-label { color: var(--navy); }
-  .step.done .step-label { color: var(--gray-800); }
-
-  .step-sublabel {
-    font-size: 12px;
     color: var(--gray-400);
-    margin-top: 2px;
+    transition: color 0.3s;
   }
 
-  /* ── Results ── */
+  .step-item.active .step-text { color: var(--navy); font-weight: 500; }
+  .step-item.done .step-text { color: var(--gray-600); }
+
+  /* ── Results card ── */
   .results-card {
     display: none;
     margin-top: 24px;
@@ -434,46 +449,65 @@
   .results-card.visible { display: block; }
 
   .result-header {
-    background: var(--green-light);
-    border: 1px solid #a7f3d0;
-    border-radius: var(--radius);
-    padding: 20px 24px;
     display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 20px;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
   }
 
-  .result-check {
-    width: 44px;
-    height: 44px;
-    background: var(--green);
-    border-radius: 50%;
-    display: flex;
+  .result-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--navy);
+    font-weight: 600;
+    margin-bottom: 4px;
+    word-break: break-word;
+  }
+
+  .result-subtitle {
+    font-size: 13px;
+    color: var(--gray-600);
+    line-height: 1.5;
+  }
+
+  /* Confidence badge */
+  .confidence-badge {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    font-size: 20px;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
     flex-shrink: 0;
   }
 
-  .result-header h3 {
-    font-size: 16px;
-    font-weight: 600;
-    color: #065f46;
+  .confidence-badge.high {
+    background: var(--green-light);
+    color: var(--green);
+    border: 1px solid #a7f3d0;
   }
 
-  .result-header p {
-    font-size: 13px;
-    color: #047857;
-    margin-top: 2px;
+  .confidence-badge.medium {
+    background: var(--amber-light);
+    color: var(--amber);
+    border: 1px solid #fde68a;
   }
 
-  /* ── Stats grid ── */
-  .stats-grid {
+  .confidence-badge.low {
+    background: var(--red-light);
+    color: var(--red);
+    border: 1px solid #fecaca;
+  }
+
+  /* Stats row */
+  .stats-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
   }
 
   .stat-box {
@@ -490,72 +524,87 @@
     font-weight: 600;
     color: var(--navy);
     line-height: 1;
+    margin-bottom: 4px;
   }
 
   .stat-label {
     font-size: 11px;
     color: var(--gray-400);
+    letter-spacing: 0.3px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-top: 5px;
   }
 
-  /* ── Entity breakdown ── */
-  .entity-section {
-    background: var(--white);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
+  /* Entity sections */
+  .entity-group {
     margin-bottom: 20px;
   }
 
-  .entity-section-header {
-    padding: 12px 16px;
-    background: var(--gray-100);
-    border-bottom: 1px solid var(--gray-200);
-    font-size: 12px;
+  .entity-group-title {
+    font-size: 11px;
     font-weight: 600;
-    color: var(--gray-600);
+    color: var(--gray-400);
+    letter-spacing: 0.6px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--gray-100);
   }
 
-  .entity-list {
-    padding: 12px 16px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .entity-chip {
+  .entity-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    background: var(--navy);
-    color: white;
-    border-radius: 20px;
-    padding: 4px 12px 4px 8px;
-    font-size: 12px;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--gray-100);
+  }
+
+  .entity-row:last-child { border-bottom: none; }
+
+  .entity-status { font-size: 16px; flex-shrink: 0; width: 20px; text-align: center; }
+
+  .entity-name {
+    font-size: 14px;
     font-weight: 500;
+    color: var(--navy);
+    flex: 1;
   }
 
-  .entity-chip-count {
-    background: rgba(255,255,255,0.2);
+  .entity-name.not-found { color: var(--gray-400); font-weight: 400; }
+
+  .entity-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--green);
+    background: var(--green-light);
+    padding: 2px 10px;
     border-radius: 10px;
-    padding: 1px 6px;
-    font-size: 11px;
+    white-space: nowrap;
   }
 
-  /* ── Download section ── */
+  .entity-count.zero {
+    color: var(--gray-400);
+    background: var(--gray-100);
+    font-weight: 400;
+  }
+
+  .entity-count.warn {
+    color: var(--amber);
+    background: var(--amber-light);
+  }
+
+  /* Download section */
   .download-section {
     display: flex;
     gap: 12px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--gray-100);
   }
 
   .btn-download {
     flex: 1;
     padding: 14px;
-    background: var(--blue);
+    background: var(--navy);
     color: white;
     border: none;
     border-radius: var(--radius-sm);
@@ -563,149 +612,45 @@
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.2s;
   }
 
   .btn-download:hover {
-    background: #1d4ed8;
+    background: var(--navy-light);
     transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 4px 12px rgba(15,31,61,0.2);
   }
 
   .btn-new {
     padding: 14px 20px;
     background: var(--white);
-    color: var(--navy);
+    color: var(--gray-600);
     border: 1.5px solid var(--gray-200);
     border-radius: var(--radius-sm);
     font-family: 'DM Sans', sans-serif;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
     transition: all 0.2s;
     white-space: nowrap;
   }
 
   .btn-new:hover {
-    border-color: var(--navy);
-    background: var(--gray-100);
+    border-color: var(--gray-400);
+    color: var(--navy);
   }
 
-  /* ── Preserved values ── */
-  .preserved-section {
-    margin-top: 16px;
-    padding: 14px 16px;
-    background: var(--amber-light);
-    border: 1px solid #fcd34d;
-    border-radius: var(--radius-sm);
-  }
-
-  .preserved-title {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--amber);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .preserved-items {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .preserved-chip {
-    background: white;
-    border: 1px solid #fcd34d;
-    border-radius: 4px;
-    padding: 2px 8px;
-    font-size: 11px;
-    color: #92400e;
-  }
-
-  /* ── Error state ── */
-  .error-box {
-    display: none;
-    margin-top: 16px;
-    padding: 16px 18px;
-    background: var(--red-light);
-    border: 1px solid #fecaca;
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    color: var(--red);
-  }
-
-  .error-box.visible { display: block; }
-
-  /* ── Footer ── */
+  /* Footer */
   footer {
     text-align: center;
-    padding: 20px;
+    padding: 24px;
     font-size: 11px;
     color: var(--gray-400);
     letter-spacing: 0.3px;
-  }
-
-  /* ── Info bar ── */
-  .info-bar {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 28px;
-  }
-
-  .info-item {
-    flex: 1;
-    background: var(--white);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius-sm);
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .info-item-icon {
-    font-size: 20px;
-    flex-shrink: 0;
-  }
-
-  .info-item-text {
-    font-size: 12px;
-    color: var(--gray-600);
-    line-height: 1.4;
-  }
-
-  .info-item-text strong {
-    display: block;
-    font-size: 13px;
-    color: var(--navy);
-    font-weight: 600;
-    margin-bottom: 1px;
-  }
-
-  .spinner {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: rotate 0.8s linear infinite;
-  }
-
-  @keyframes rotate {
-    to { transform: rotate(360deg); }
   }
 </style>
 </head>
@@ -713,63 +658,43 @@
 
 <header>
   <div class="header-left">
-    <div class="logo-mark">OP</div>
+    <div class="logo-mark">CP</div>
     <div>
-      <div class="header-title">Eric Jamison, MD</div>
-      <div class="header-subtitle">Patient De-Identification System</div>
+      <div class="header-title">ClearPHI</div>
+      <div class="header-subtitle">Patient De-Identification</div>
     </div>
   </div>
-  <div class="hipaa-badge">
-    <div class="hipaa-dot"></div>
-    Semi-HIPAA Safe Harbor Compliant
+  <div class="header-right">
+    <div class="hipaa-badge">
+      <div class="hipaa-dot"></div>
+      HIPAA Safe Harbor · Local Processing
+    </div>
+    <button class="btn-logout" onclick="window.location.href='/logout'">Sign Out</button>
   </div>
 </header>
 
 <main>
   <div class="page-intro">
-    <h1>Document De-Identification</h1>
-    <p>Upload a patient document to automatically remove all protected health information before research use.</p>
+    <h1>De-Identify a Document</h1>
+    <p>Upload a clinical PDF or DOCX. All 18 HIPAA Safe Harbor identifiers are removed locally — no data leaves this device.</p>
   </div>
 
-  <div class="info-bar">
-    <div class="info-item">
-      <div class="info-item-icon">🔒</div>
-      <div class="info-item-text">
-        <strong>Processed Locally</strong>
-        No data leaves this computer
-      </div>
-    </div>
-    <div class="info-item">
-      <div class="info-item-icon">📋</div>
-      <div class="info-item-text">
-        <strong>3 HIPAA Identifiers</strong>
-        3 Safe Harbor categories covered
-      </div>
-    </div>
-    <div class="info-item">
-      <div class="info-item-icon">🗒️</div>
-      <div class="info-item-text">
-        <strong>Audit Log Saved</strong>
-        Full redaction report generated
-      </div>
-    </div>
-  </div>
-
-  <!-- Upload Card -->
-  <div class="card" id="uploadCard">
+  <!-- Upload card -->
+  <div class="card">
     <div class="card-header">
-      <div class="card-header-icon">📄</div>
+      <div class="card-header-icon">🛡️</div>
       <div>
-        <h2>Upload Patient Document</h2>
-        <p>PDF and Word documents supported</p>
+        <h2>Document Upload</h2>
+        <p>PDF and DOCX supported — scanned documents use OCR automatically</p>
       </div>
     </div>
     <div class="card-body">
+
       <div class="drop-zone" id="dropZone">
         <input type="file" id="fileInput" accept=".pdf,.docx" />
         <span class="drop-icon">📂</span>
-        <h3>Drag & drop your document here</h3>
-        <p>or click anywhere to browse files</p>
+        <h3>Drop your document here</h3>
+        <p>or click to browse</p>
         <div class="file-types">
           <span class="tag">PDF</span>
           <span class="tag">DOCX</span>
@@ -777,12 +702,12 @@
       </div>
 
       <div class="file-queued" id="fileQueued">
-        <div class="file-icon" id="fileIcon">📄</div>
+        <div class="file-icon" id="fileIcon">📕</div>
         <div class="file-info">
-          <div class="file-name" id="fileName">document.pdf</div>
-          <div class="file-size" id="fileSize">—</div>
+          <div class="file-name" id="fileName"></div>
+          <div class="file-size" id="fileSize"></div>
         </div>
-        <button class="remove-file" id="removeFile" title="Remove file">✕</button>
+        <button class="btn-remove" id="removeFile" title="Remove">✕</button>
       </div>
 
       <div class="error-box" id="errorBox"></div>
@@ -791,128 +716,154 @@
         <span id="btnIcon">🛡️</span>
         <span id="btnText">De-Identify Document</span>
       </button>
+
     </div>
   </div>
 
-  <!-- Progress -->
+  <!-- Progress card -->
   <div class="progress-card card" id="progressCard">
     <div class="card-header">
       <div class="card-header-icon">⚙️</div>
       <div>
-        <h2>Processing Document</h2>
-        <p>Please wait — do not close this window</p>
+        <h2>Processing</h2>
+        <p>Applying HIPAA Safe Harbor de-identification</p>
       </div>
     </div>
     <div class="card-body">
-      <div class="progress-steps">
-        <div class="step" id="step1">
+      <ul class="step-list">
+        <li class="step-item" id="step1">
           <div class="step-dot" id="dot1">1</div>
-          <div>
-            <div class="step-label">Uploading document</div>
-            <div class="step-sublabel">Sending to local de-identification engine</div>
-          </div>
-        </div>
-        <div class="step" id="step2">
+          <span class="step-text">Uploading document</span>
+        </li>
+        <li class="step-item" id="step2">
           <div class="step-dot" id="dot2">2</div>
-          <div>
-            <div class="step-label">Extracting text</div>
-            <div class="step-sublabel">Reading PDF / Word content</div>
-          </div>
-        </div>
-        <div class="step" id="step3">
+          <span class="step-text">Scanning for PHI patterns</span>
+        </li>
+        <li class="step-item" id="step3">
           <div class="step-dot" id="dot3">3</div>
-          <div>
-            <div class="step-label">Scanning for PHI</div>
-            <div class="step-sublabel">Identifying 3 HIPAA Safe Harbor identifiers</div>
-          </div>
-        </div>
-        <div class="step" id="step4">
+          <span class="step-text">Applying redactions</span>
+        </li>
+        <li class="step-item" id="step4">
           <div class="step-dot" id="dot4">4</div>
-          <div>
-            <div class="step-label">Redacting identifiers</div>
-            <div class="step-sublabel">Replacing PHI with labeled placeholders</div>
-          </div>
-        </div>
-        <div class="step" id="step5">
+          <span class="step-text">Generating audit log</span>
+        </li>
+        <li class="step-item" id="step5">
           <div class="step-dot" id="dot5">5</div>
-          <div>
-            <div class="step-label">Saving audit log</div>
-            <div class="step-sublabel">Recording all redactions for compliance</div>
-          </div>
-        </div>
-      </div>
+          <span class="step-text">Finalising output</span>
+        </li>
+      </ul>
     </div>
   </div>
 
-  <!-- Results -->
-  <div class="results-card" id="resultsCard">
-    <div class="result-header">
-      <div class="result-check">✓</div>
+  <!-- Results card -->
+  <div class="results-card card" id="resultsCard">
+    <div class="card-header">
+      <div class="card-header-icon">✅</div>
       <div>
-        <h3 id="resultTitle">De-identification complete</h3>
-        <p id="resultSubtitle">Document is ready for research use</p>
+        <h2>De-identification Complete</h2>
+        <p>Review the summary below before downloading</p>
       </div>
     </div>
+    <div class="card-body">
 
-    <div class="stats-grid">
-      <div class="stat-box">
-        <div class="stat-number" id="statTotal">—</div>
-        <div class="stat-label">Items Removed</div>
+      <div class="result-header">
+        <div>
+          <div class="result-title" id="resultTitle"></div>
+          <div class="result-subtitle" id="resultSubtitle"></div>
+        </div>
+        <div class="confidence-badge" id="confidenceBadge"></div>
       </div>
-      <div class="stat-box">
-        <div class="stat-number" id="statTypes">—</div>
-        <div class="stat-label">PHI Categories</div>
+
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-number" id="statTotal">—</div>
+          <div class="stat-label">Total Redactions</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="statTypes">—</div>
+          <div class="stat-label">PHI Categories Found</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="statName">—</div>
+          <div class="stat-label">Patient Name Hits</div>
+        </div>
       </div>
-      <div class="stat-box">
-        <div class="stat-number" id="statPreserved">—</div>
-        <div class="stat-label">Values Preserved</div>
+
+      <!-- Group 1 — Core identifiers (always shown) -->
+      <div class="entity-group">
+        <div class="entity-group-title">Group 1 — Core Identifiers</div>
+        <div id="group1List"></div>
       </div>
-    </div>
 
-    <div class="entity-section">
-      <div class="entity-section-header">Redacted Summary</div>
-      <div class="entity-list" id="entityList"></div>
-    </div>
+      <!-- Group 2 — Additional identifiers (only shown if any found) -->
+      <div class="entity-group" id="group2Section" style="display:none">
+        <div class="entity-group-title">Group 2 — Additional Identifiers</div>
+        <div id="group2List"></div>
+      </div>
 
-    <div class="preserved-section" id="preservedSection" style="display:none">
-      <div class="preserved-title">⚠️ Intentionally Preserved (HIPAA Safe Harbor)</div>
-      <div class="preserved-items" id="preservedItems"></div>
-    </div>
+      <div class="download-section">
+        <button class="btn-download" id="downloadBtn">
+          ⬇️ Download Redacted Document
+        </button>
+        <button class="btn-new" id="newDocBtn">
+          ↩ New Document
+        </button>
+      </div>
 
-    <div class="download-section" style="margin-top:20px">
-      <button class="btn-download" id="downloadBtn">
-        ⬇️ Download Redacted Document
-      </button>
-      <button class="btn-new" id="newDocBtn">
-        ↩ New Document
-      </button>
     </div>
   </div>
 
 </main>
 
 <footer>
-  Eric Jamison, MD · Patient De-Identification System · All processing is local · No PHI transmitted externally
+  ClearPHI · All processing is local · No PHI transmitted externally
 </footer>
 
 <script>
-  const dropZone = document.getElementById('dropZone');
-  const fileInput = document.getElementById('fileInput');
-  const fileQueued = document.getElementById('fileQueued');
-  const fileNameEl = document.getElementById('fileName');
-  const fileSizeEl = document.getElementById('fileSize');
-  const fileIconEl = document.getElementById('fileIcon');
-  const removeFileBtn = document.getElementById('removeFile');
-  const processBtn = document.getElementById('processBtn');
-  const btnIcon = document.getElementById('btnIcon');
-  const btnText = document.getElementById('btnText');
-  const errorBox = document.getElementById('errorBox');
-  const progressCard = document.getElementById('progressCard');
-  const resultsCard = document.getElementById('resultsCard');
+  const dropZone       = document.getElementById('dropZone');
+  const fileInput      = document.getElementById('fileInput');
+  const fileQueued     = document.getElementById('fileQueued');
+  const fileNameEl     = document.getElementById('fileName');
+  const fileSizeEl     = document.getElementById('fileSize');
+  const fileIconEl     = document.getElementById('fileIcon');
+  const removeFileBtn  = document.getElementById('removeFile');
+  const processBtn     = document.getElementById('processBtn');
+  const btnIcon        = document.getElementById('btnIcon');
+  const btnText        = document.getElementById('btnText');
+  const errorBox       = document.getElementById('errorBox');
+  const progressCard   = document.getElementById('progressCard');
+  const resultsCard    = document.getElementById('resultsCard');
 
   let selectedFile = null;
   let redactedOutputPath = null;
 
+  // ── Entity label maps ──────────────────────────────────────────
+  const GROUP1_FIELDS = [
+    { key: 'PATIENT_NAME',  label: 'Patient Name',          critical: true  },
+    { key: 'DATE_OF_BIRTH', label: 'Date of Birth',         critical: true  },
+    { key: 'MRN',           label: 'Medical Record Number', critical: true  },
+    { key: 'SSN',           label: 'Social Security Number',critical: false },
+    { key: 'PHONE',         label: 'Phone Numbers',         critical: false },
+    { key: 'FAX',           label: 'Fax Numbers',           critical: false },
+    { key: 'EMAIL',         label: 'Email Addresses',       critical: false },
+    { key: 'IP_ADDRESS',    label: 'IP Addresses',          critical: false },
+    { key: 'URL',           label: 'Web URLs',              critical: false },
+  ];
+
+  const GROUP2_FIELDS = [
+    { key: 'DATE',           label: 'Clinical Dates'         },
+    { key: 'ADDRESS',        label: 'Addresses'              },
+    { key: 'ZIP',            label: 'ZIP Codes'              },
+    { key: 'NPI',            label: 'NPI Numbers'            },
+    { key: 'ACCOUNT_NUMBER', label: 'Account Numbers'        },
+    { key: 'BENEFICIARY_ID', label: 'Insurance/Beneficiary IDs' },
+    { key: 'LICENSE_NUMBER', label: 'License Numbers'        },
+    { key: 'DEVICE_ID',      label: 'Device Serial Numbers'  },
+    { key: 'VIN',            label: 'Vehicle Identifiers'    },
+    { key: 'AGE',            label: 'Ages Over 89'           },
+  ];
+
+  // ── Helpers ────────────────────────────────────────────────────
   function formatSize(bytes) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
@@ -941,9 +892,7 @@
     errorBox.classList.add('visible');
   }
 
-  function hideError() {
-    errorBox.classList.remove('visible');
-  }
+  function hideError() { errorBox.classList.remove('visible'); }
 
   function clearFile() {
     selectedFile = null;
@@ -953,7 +902,9 @@
     hideError();
   }
 
-  // Drag and drop
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // ── Drag and drop ──────────────────────────────────────────────
   dropZone.addEventListener('dragover', e => {
     e.preventDefault();
     dropZone.classList.add('dragover');
@@ -970,17 +921,18 @@
   });
   removeFileBtn.addEventListener('click', clearFile);
 
-  // Step animation helpers
+  // ── Step helpers ───────────────────────────────────────────────
   function stepActive(n) {
-    document.getElementById('step' + n).classList.add('active');
+    const s = document.getElementById('step' + n);
+    s.classList.add('active');
     document.getElementById('dot' + n).textContent = '⟳';
   }
   function stepDone(n) {
-    document.getElementById('step' + n).classList.remove('active');
-    document.getElementById('step' + n).classList.add('done');
+    const s = document.getElementById('step' + n);
+    s.classList.remove('active');
+    s.classList.add('done');
     document.getElementById('dot' + n).textContent = '✓';
   }
-
   function resetSteps() {
     for (let i = 1; i <= 5; i++) {
       const s = document.getElementById('step' + i);
@@ -989,7 +941,7 @@
     }
   }
 
-  // Process
+  // ── Process ────────────────────────────────────────────────────
   processBtn.addEventListener('click', async () => {
     if (!selectedFile) return;
 
@@ -1001,10 +953,10 @@
     resultsCard.classList.remove('visible');
     resetSteps();
 
-    // Build form data
     const formData = new FormData();
     formData.append('file', selectedFile);
     formData.append('document_id', selectedFile.name.replace(/\.[^.]+$/, ''));
+    formData.append('mode', 'labeled');
 
     stepActive(1);
 
@@ -1014,14 +966,9 @@
         body: formData
       });
 
-      stepDone(1);
-      stepActive(2);
-      await delay(400);
-      stepDone(2);
-      stepActive(3);
-      await delay(600);
-      stepDone(3);
-      stepActive(4);
+      stepDone(1); stepActive(2); await delay(400);
+      stepDone(2); stepActive(3); await delay(600);
+      stepDone(3); stepActive(4);
 
       if (!response.ok) {
         const err = await response.json();
@@ -1029,9 +976,7 @@
       }
 
       const result = await response.json();
-      stepDone(4);
-      stepActive(5);
-      await delay(400);
+      stepDone(4); stepActive(5); await delay(400);
       stepDone(5);
 
       redactedOutputPath = result.output_path;
@@ -1039,74 +984,104 @@
 
     } catch (err) {
       for (let i = 1; i <= 5; i++) {
-        if (document.getElementById('step' + i).classList.contains('active')) {
-          document.getElementById('step' + i).classList.remove('active');
-          document.getElementById('step' + i).classList.add('error');
+        const s = document.getElementById('step' + i);
+        if (s.classList.contains('active')) {
+          s.classList.remove('active');
+          s.classList.add('error');
           document.getElementById('dot' + i).textContent = '✕';
         }
       }
-      showError('Processing failed: ' + err.message + '. Make sure the de-identification service is running.');
+      showError('Processing failed: ' + err.message);
       btnIcon.textContent = '🛡️';
       btnText.textContent = 'De-Identify Document';
       processBtn.disabled = false;
     }
   });
 
-  function delay(ms) {
-    return new Promise(r => setTimeout(r, ms));
-  }
-
+  // ── Results ────────────────────────────────────────────────────
   function showResults(result) {
     const counts = result.entity_counts || {};
-    const types = Object.keys(counts).length;
-    const preserved = (result.preserved_values || []).length;
 
-    document.getElementById('statTotal').textContent = result.total_redactions || 0;
-    document.getElementById('statTypes').textContent = types;
-    document.getElementById('statPreserved').textContent = preserved;
-    document.getElementById('resultTitle').textContent = 'De-identification complete: ' + result.document_id;
+    // Header
+    document.getElementById('resultTitle').textContent = result.document_id || 'Document';
     document.getElementById('resultSubtitle').textContent =
-      result.total_redactions + ' PHI items removed · Audit log saved · Ready for research';
+      (result.patient_name_discovered && result.patient_name_discovered !== 'not found'
+        ? 'Patient: ' + result.patient_name_discovered + ' · '
+        : '') +
+      (result.total_redactions || 0) + ' PHI items removed · Audit log saved';
 
-// Redaction summary — clean three-field display
-    const entityList = document.getElementById('entityList');
-    entityList.innerHTML = '';
+    // Stats
+    const categoriesFound = Object.values(counts).filter(v => v > 0).length;
+    document.getElementById('statTotal').textContent  = result.total_redactions || 0;
+    document.getElementById('statTypes').textContent  = categoriesFound;
+    document.getElementById('statName').textContent   = counts['PATIENT_NAME'] || 0;
 
-    const fieldLabels = {
-      'PATIENT_NAME': 'Patient Name',
-      'DATE_OF_BIRTH': 'Date of Birth',
-      'MRN': 'Medical Record Number'
-    };
+    // Confidence badge
+    const nameFound = (counts['PATIENT_NAME'] || 0) > 0;
+    const dobFound  = (counts['DATE_OF_BIRTH'] || 0) > 0;
+    const mrnFound  = (counts['MRN'] || 0) > 0;
+    const badge     = document.getElementById('confidenceBadge');
 
-    Object.entries(fieldLabels).forEach(([key, label]) => {
+    if (nameFound && dobFound && mrnFound) {
+      badge.className = 'confidence-badge high';
+      badge.textContent = '✓ High Confidence';
+    } else if (nameFound) {
+      badge.className = 'confidence-badge medium';
+      badge.textContent = '⚠ Review Recommended';
+    } else {
+      badge.className = 'confidence-badge low';
+      badge.textContent = '✕ Manual Review Required';
+    }
+
+    // Group 1 — always render all fields
+    const g1List = document.getElementById('group1List');
+    g1List.innerHTML = '';
+    GROUP1_FIELDS.forEach(({ key, label, critical }) => {
       const count = counts[key] || 0;
       const row = document.createElement('div');
-      row.style.cssText = 'display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid #f3f4f6;';
-      row.innerHTML = count > 0
-        ? `<span style="color:#059669; font-size:18px;">✅</span>
-           <span style="font-size:14px; font-weight:500; color:#0f1f3d; flex:1;">${label}</span>
-           <span style="font-size:13px; color:#6b7280;">${count} instance${count !== 1 ? 's' : ''} redacted</span>`
-        : `<span style="color:#d97706; font-size:18px;">⚠️</span>
-           <span style="font-size:14px; font-weight:500; color:#6b7280; flex:1;">${label}</span>
-           <span style="font-size:13px; color:#d97706;">not found in document</span>`;
-      entityList.appendChild(row);
+      row.className = 'entity-row';
+
+      let statusIcon, countClass;
+      if (count > 0) {
+        statusIcon = '✅';
+        countClass = 'entity-count';
+      } else if (critical) {
+        statusIcon = '⚠️';
+        countClass = 'entity-count warn';
+      } else {
+        statusIcon = '—';
+        countClass = 'entity-count zero';
+      }
+
+      row.innerHTML = `
+        <span class="entity-status">${statusIcon}</span>
+        <span class="entity-name${count === 0 ? ' not-found' : ''}">${label}</span>
+        <span class="${countClass}">
+          ${count > 0 ? count + ' instance' + (count !== 1 ? 's' : '') : 'not found'}
+        </span>`;
+      g1List.appendChild(row);
     });
 
-    // Preserved values
-    const preservedSection = document.getElementById('preservedSection');
-    const preservedItems = document.getElementById('preservedItems');
-    const pvList = result.preserved_values || [];
-    if (pvList.length > 0) {
-      preservedSection.style.display = 'block';
-      preservedItems.innerHTML = '';
-      pvList.forEach(pv => {
-        const chip = document.createElement('span');
-        chip.className = 'preserved-chip';
-        chip.textContent = `"${pv.value}" (${pv.entity_type.replace(/_/g,' ')})`;
-        preservedItems.appendChild(chip);
+    // Group 2 — only render types that were found
+    const g2Items = GROUP2_FIELDS.filter(({ key }) => (counts[key] || 0) > 0);
+    const g2Section = document.getElementById('group2Section');
+    const g2List    = document.getElementById('group2List');
+    g2List.innerHTML = '';
+
+    if (g2Items.length > 0) {
+      g2Section.style.display = 'block';
+      g2Items.forEach(({ key, label }) => {
+        const count = counts[key];
+        const row = document.createElement('div');
+        row.className = 'entity-row';
+        row.innerHTML = `
+          <span class="entity-status">✅</span>
+          <span class="entity-name">${label}</span>
+          <span class="entity-count">${count} instance${count !== 1 ? 's' : ''}</span>`;
+        g2List.appendChild(row);
       });
     } else {
-      preservedSection.style.display = 'none';
+      g2Section.style.display = 'none';
     }
 
     resultsCard.classList.add('visible');
@@ -1114,28 +1089,27 @@
     btnText.textContent = 'De-Identify Document';
   }
 
-  // Download
+  // ── Download ───────────────────────────────────────────────────
   document.getElementById('downloadBtn').addEventListener('click', async () => {
     if (!redactedOutputPath) return;
     const filename = redactedOutputPath.split(/[\\/]/).pop();
     const response = await fetch('/deidentify/download?path=' + encodeURIComponent(redactedOutputPath));
     const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
     a.href = url;
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
   });
 
-  // New document
+  // ── New document ───────────────────────────────────────────────
   document.getElementById('newDocBtn').addEventListener('click', () => {
     clearFile();
     progressCard.classList.remove('visible');
     resultsCard.classList.remove('visible');
     redactedOutputPath = null;
     resetSteps();
-    processBtn.disabled = true;
     btnIcon.textContent = '🛡️';
     btnText.textContent = 'De-Identify Document';
   });

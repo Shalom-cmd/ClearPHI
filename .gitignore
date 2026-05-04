@@ -12,10 +12,14 @@ __pycache__/
 input_docs/
 output_docs/
 logs/
-
+tests/test_records/
+tests/deid_output/
 # VS Code
 .vscode/
 
 # Mac
 .DS_Store
 gunicorn_*.log
+
+desktop.ini
+[Dd]esktop.ini
